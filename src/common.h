@@ -13,6 +13,7 @@
 #include <cctype>
 #include <fstream>
 #include <cstring>
+#include <memory>
 
 #define __DEBUG_STEP__
 

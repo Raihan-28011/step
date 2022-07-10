@@ -2,9 +2,10 @@
 // Created by raihan on 7/9/22.
 //
 
-//#ifndef STEP_LEXER_H
-//#define STEP_LEXER_H
 #pragma once
+
+#ifndef STEP_LEXER_H
+#define STEP_LEXER_H
 
 #include "token.h"
 #include "error.h"
@@ -13,7 +14,7 @@ namespace step {
 
     class Lexer {
     public:
-        explicit Lexer(string const &file, string const &fname);
+        Lexer(string const &file, string const &fname);
         ~Lexer() = default;
 
         vector<Token> const &get_tokens() const { return tokens; }
@@ -28,7 +29,7 @@ namespace step {
     private:
         string const &file;
         string const &fname;
-        ErrorManager errorManger;
+        ErrorManager &errorManger;
 
         vector<Token> tokens;
         Token eof_token{};
@@ -46,18 +47,13 @@ namespace step {
         char next_char();
         char peek_char();
         void add_t(TokenKind tok, string &&s);
-
         void num_token(char c);
-
         void indentifier_token(char c);
-
         void unknown_token(char c);
-
         void string_token(char c);
-
         void comment_token(char c);
     };
 
 } // step
 
-//#endif //STEP_LEXER_H
+#endif //STEP_LEXER_H

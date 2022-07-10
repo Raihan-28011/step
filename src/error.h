@@ -2,24 +2,31 @@
 // Created by raihan on 7/9/22.
 //
 
-//#ifndef STEP_ERROR_H
-//#define STEP_ERROR_H
-
 #pragma once
+
+#ifndef STEP_ERROR_H
+#define STEP_ERROR_H
+
 
 #include <cstdlib>
 #include "common.h"
 
 namespace step {
     class ErrorManager {
-    public:
+    private:
         ErrorManager(string const &cont, string const &fn)
             : content{cont}, fname{fn}
         {
             store_lines();
         }
 
+    public:
         ~ErrorManager() = default;
+
+        static ErrorManager &get_instance(string const &cont, string const &fn) {
+            static ErrorManager errorManager{cont, fn};
+            return errorManager;
+        }
 
         void compilation_error(string msg, int line, int col) {
             std::cerr << fname
@@ -66,4 +73,4 @@ namespace step {
     };
 }
 
-//#endif //STEP_ERROR_H
+#endif //STEP_ERROR_H

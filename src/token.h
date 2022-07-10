@@ -6,6 +6,9 @@
 //#define STEP_TOKEN_H
 #pragma once
 
+#ifndef STEP_TOKEN_H
+#define STEP_TOKEN_H
+
 #include "common.h"
 
 namespace step {
@@ -59,241 +62,248 @@ namespace step {
 
         ~Token() = default;
 
+        TokenKind get_kind() const { return kind; }
+        string const &get_tok() const { return tok; }
+        i32 get_line() {  return line; }
+        i32 get_col() {  return col; }
+
+        static std::array<string, t_total> const tok_s;
+
 #ifdef __DEBUG_STEP__
         void print() const {
             switch (kind) {
-                case t_error: std::cout << "t_error\t'"
+                case t_error: std::cout << "t_error" << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_eof: std::cout << "t_eof\t'"
+                case t_eof: std::cout << "t_eof" << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_def: std::cout << "t_def\t'"
+                case t_def: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_print: std::cout << "t_print\t'"
+                case t_print: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_input: std::cout << "t_input\t'"
+                case t_input: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_true: std::cout << "t_true\t'"
+                case t_true: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_false: std::cout << "t_false\t'"
+                case t_false: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_null: std::cout << "t_null\t'"
+                case t_null: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_ident: std::cout << "t_ident\t'"
+                case t_ident: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_string: std::cout << "t_string\t'"
+                case t_string: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_num: std::cout << "t_num\t'"
+                case t_num: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_equal: std::cout << "t_equal\t'"
+                case t_equal: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_semicolon: std::cout << "t_semicolon\t'"
+                case t_semicolon: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_dot: std::cout << "t_dot\t'"
+                case t_dot: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_lparen: std::cout << "t_lparent\t'"
+                case t_lparen: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_rparen: std::cout << "t_rparent\t'"
+                case t_rparen: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_lbrace: std::cout << "t_lbrace\t'"
+                case t_lbrace: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_rbrace: std::cout << "t_rbrace\t'"
+                case t_rbrace: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_lsqbrace: std::cout << "t_lsqbrace\t'"
+                case t_lsqbrace: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_rsqbrace: std::cout << "t_rsqbrace\t'"
+                case t_rsqbrace: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "
                                    << line
                                    << ", col: "
                                    << col
                                    << '\n'; break;
-                case t_plus: std::cout << "t_plus\t'"
+                case t_plus: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_minus: std::cout << "t_minus\t'"
+                case t_minus: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_star: std::cout << "t_star\t'"
+                case t_star: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_slash: std::cout << "t_slash\t'"
+                case t_slash: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_modulus: std::cout << "t_modulus\t'"
+                case t_modulus: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_equalequal: std::cout << "t_equalequal\t'"
+                case t_equalequal: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_notequal: std::cout << "t_notequal\t'"
+                case t_notequal: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_bang: std::cout << "t_bang\t'"
+                case t_bang: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_less: std::cout << "t_less\t'"
+                case t_less: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_greater: std::cout << "t_greater\t'"
+                case t_greater: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_lessequal: std::cout << "t_lessequal\t'"
+                case t_lessequal: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_greaterequal: std::cout << "t_greaterequal\t'"
+                case t_greaterequal: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_logicaland: std::cout << "t_logicaland\t'"
+                case t_logicaland: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
                                        << ", col: "
                                        << col
                                        << '\n'; break;
-                case t_logicalor: std::cout << "t_logicalor\t'"
+                case t_logicalor: std::cout << tok_s[kind] << "\t'"
                                        << tok
                                        << "'\tat line: "
                                        << line
@@ -318,8 +328,7 @@ namespace step {
         i32 line;
         i32 col;
     };
-
 }
 
 
-//#endif //STEP_TOKEN_H
+#endif //STEP_TOKEN_H

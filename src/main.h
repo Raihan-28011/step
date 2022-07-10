@@ -2,11 +2,12 @@
 // Created by raihan on 7/9/22.
 //
 
-//#ifndef STEP_MAIN_H
-//#define STEP_MAIN_H
 #pragma once
 
-#include "lexer.h"
+#ifndef STEP_MAIN_H
+#define STEP_MAIN_H
+
+#include "parser.h"
 
 namespace step {
     void read_file(char const *fname, string &cont) {
@@ -31,4 +32,4 @@ namespace step {
 }
 
 
-//#endif //STEP_MAIN_H
+#endif //STEP_MAIN_H

@@ -6,7 +6,10 @@
 
 namespace step {
     Lexer::Lexer(string const &f, string const &fn)
-        : file{f}, fname{fn}, text_size{as<i32>(f.size())}, errorManger(f,fname)
+        : file{f},
+          fname{fn},
+          text_size{as<i32>(f.size())},
+          errorManger(ErrorManager::get_instance(f, fn))
     {
         tokenize();
     }
@@ -82,6 +85,7 @@ namespace step {
             skip_whitespace();
             c = next_char();
         }
+        add_t(t_eof, "eof");
     }
 
     void Lexer::skip_whitespace() {
@@ -230,7 +234,7 @@ namespace step {
 
     void Lexer::comment_token(char c) {
         c = peek_char();
-        while (c != '\n') {
+        while (c != '\n' && !is_eof(c)) {
             next_char();
             c = peek_char();
         }

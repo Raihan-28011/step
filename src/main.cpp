@@ -21,6 +21,6 @@ int main(int argc, char **argv) {
     }
     string cont{};
     step::read_file(argv[1], cont);
-    step::Lexer lexer(cont, argv[1]);
-    lexer.print();
+    step::Parser parser(cont, argv[1]);
+    parser.parse();
 }
