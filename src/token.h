@@ -27,6 +27,7 @@ namespace step {
         t_num,
         t_equal,
         t_semicolon,
+        t_comma,
         t_dot,
         t_lparen,
         t_rparen,
@@ -64,8 +65,8 @@ namespace step {
 
         TokenKind get_kind() const { return kind; }
         string const &get_tok() const { return tok; }
-        i32 get_line() {  return line; }
-        i32 get_col() {  return col; }
+        i32 get_line() const {  return line; }
+        i32 get_col() const {  return col; }
 
         static std::array<string, t_total> const tok_s;
 
@@ -163,6 +164,13 @@ namespace step {
                                    << ", col: "
                                    << col
                                    << '\n'; break;
+                case t_comma: std::cout << tok_s[kind] << "\t'"
+                                        << tok
+                                        << "'\tat line: "
+                                        << line
+                                        << ", col: "
+                                        << col
+                                        << '\n'; break;
                 case t_dot: std::cout << tok_s[kind] << "\t'"
                                    << tok
                                    << "'\tat line: "

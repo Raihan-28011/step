@@ -22,11 +22,12 @@ namespace step {
                 case '(': add_t(t_lparen, "("); break;
                 case ')': add_t(t_rparen, ")"); break;
                 case '{': add_t(t_lbrace, "{"); break;
-                case '}': add_t(t_rparen, "}"); break;
+                case '}': add_t(t_rbrace, "}"); break;
                 case '[': add_t(t_lsqbrace, "["); break;
                 case ']': add_t(t_rsqbrace, "]"); break;
                 case '.': add_t(t_dot, "."); break;
                 case ';': add_t(t_semicolon, ";"); break;
+                case ',': add_t(t_comma, ","); break;
                 case '=':
                     if (peek_char() == '=')
                         add_t(t_equalequal, "==");

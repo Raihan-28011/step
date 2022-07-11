@@ -16,6 +16,7 @@ std::array<string, step::TokenKind::t_total> const step::Token::tok_s {
         "t_num",
         "t_equal",
         "t_semicolon",
+        "t_comma",
         "t_dot",
         "t_lparen",
         "t_rparen",
