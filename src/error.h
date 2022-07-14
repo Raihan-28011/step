@@ -10,17 +10,17 @@
 
 #include <cstdlib>
 #include "common.h"
+#include "frame.h"
 
 namespace step {
     class ErrorManager {
-    private:
+    public:
         ErrorManager(string const &cont, string const &fn)
             : content{cont}, fname{fn}
         {
             store_lines();
         }
 
-    public:
         ~ErrorManager() = default;
 
         static ErrorManager &get_instance(string const &cont, string const &fn) {
@@ -34,6 +34,12 @@ namespace step {
                       << msg << '\n';
             std::cerr << string(content.begin()+lines[line-1].first, content.begin()+lines[line-1].second) << '\n'
                       << string(col-1, ' ') << "^\n";
+            std::exit(-1);
+        }
+
+        void runtime_error(string msg, Frame const &frame) {
+            /* cur_frame.stack_trace(); */
+            std::cerr << "[ERROR]\t" << msg << '\n';
             std::exit(-1);
         }
 
@@ -72,5 +78,7 @@ namespace step {
         }
     };
 }
+
+extern std::shared_ptr<step::ErrorManager> errorManager;
 
 #endif //STEP_ERROR_H

@@ -29,7 +29,7 @@ namespace step {
     private:
         string const &file;
         string const &fname;
-        ErrorManager &errorManger;
+        std::shared_ptr<ErrorManager> errorManger;
 
         vector<Token> tokens;
         Token eof_token{};

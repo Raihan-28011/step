@@ -49,6 +49,8 @@ namespace step {
         t_greaterequal,
         t_logicaland,
         t_logicalor,
+        t_starstar,
+        t_return,
 
         t_unknown,
         t_total
@@ -318,6 +320,20 @@ namespace step {
                                        << ", col: "
                                        << col
                                        << '\n'; break;
+                case t_starstar: std::cout << tok_s[kind] << "\t'"
+                                            << tok
+                                            << "'\tat line: "
+                                            << line
+                                            << ", col: "
+                                            << col
+                                            << '\n'; break;
+                case t_return: std::cout << tok_s[kind] << "\t'"
+                                           << tok
+                                           << "'\tat line: "
+                                           << line
+                                           << ", col: "
+                                           << col
+                                           << '\n'; break;
 
                 default: std::cout << "t_unknown\t"
                                    << tok

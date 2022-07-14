@@ -14,6 +14,11 @@
 #include <fstream>
 #include <cstring>
 #include <memory>
+#include <stack>
+#include <variant>
+#include <cmath>
+#include <iomanip>
+#include <sstream>
 
 #define __DEBUG_STEP__
 
@@ -30,11 +35,17 @@ using string = std::string;
 template <typename T>
 using vector = std::vector<T>;
 
+template <typename T>
+using stack = std::stack<T>;
+
 template <typename T, typename U>
 using umap = std::unordered_map<T, U>;
 
 template <typename T, typename U>
 using map = std::map<T, U>;
+
+template <typename ...T>
+using variant = std::variant<T...>;
 
 namespace step {
     template <typename TO>

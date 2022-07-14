@@ -38,4 +38,6 @@ std::array<string, step::TokenKind::t_total> const step::Token::tok_s {
         "t_greaterequal",
         "t_logicaland",
         "t_logicalor",
+        "t_starstar",
+        "t_return",
 };

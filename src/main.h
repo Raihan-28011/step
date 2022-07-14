@@ -8,6 +8,7 @@
 #define STEP_MAIN_H
 
 #include "parser.h"
+#include "error.h"
 
 namespace step {
     void read_file(char const *fname, string &cont) {
@@ -28,6 +29,10 @@ namespace step {
         cont = string(content);
         delete[] content;
         file.close();
+    }
+
+    void initialize_step(string const &content, string const &fname) {
+        errorManager = std::make_shared<step::ErrorManager>(content, fname);
     }
 }
 

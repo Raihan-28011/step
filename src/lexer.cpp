@@ -9,7 +9,7 @@ namespace step {
         : file{f},
           fname{fn},
           text_size{as<i32>(f.size())},
-          errorManger(ErrorManager::get_instance(f, fn))
+          errorManger(::errorManager)
     {
         tokenize();
     }
@@ -42,7 +42,12 @@ namespace step {
                     else
                         add_t(t_bang, "!");
                     break;
-                case '*': add_t(t_star, "*"); break;
+                case '*':
+                    if (peek_char() == '*')
+                        add_t(t_starstar, "**");
+                    else
+                        add_t(t_star, "*");
+                    break;
                 case '/': add_t(t_slash, "/"); break;
                 case '%': add_t(t_modulus, "%"); break;
                 case '|':
@@ -125,7 +130,7 @@ namespace step {
         num += c;
 
         if (is_eof(c)) {
-            errorManger.compilation_error("unexpected eof encounter", line, col);
+            errorManger->compilation_error("unexpected eof encounter", line, col);
         }
 
         bool octal = (c == '0' && std::isdigit(peek_char()));
@@ -139,7 +144,7 @@ namespace step {
             bool valid_num = (hex || bin);
 
             if (!valid_num) {
-                errorManger.compilation_error("invalid number prefix", line, col);
+                errorManger->compilation_error("invalid number prefix", line, col);
             }
 
             num.pop_back();
@@ -151,25 +156,25 @@ namespace step {
         while ((hex && std::isalnum(c)) || (std::isdigit(c) || c == '.') && !is_eof(c)) {
             c = next_char();
             if (bin && c != '1' && c != '0') {
-                errorManger.compilation_error("invalid binary number", line, col);
+                errorManger->compilation_error("invalid binary number", line, col);
             }
 
             if (octal && c > '7') {
-                errorManger.compilation_error("invalid octal number", line, col);
+                errorManger->compilation_error("invalid octal number", line, col);
             }
 
             if (hex && std::tolower(c) > 'f') {
-                errorManger.compilation_error("invalid hex number", line, col);
+                errorManger->compilation_error("invalid hex number", line, col);
             }
 
             if (c == '.') {
                 if (octal || hex || bin) {
-                    errorManger.compilation_error((octal ? "octal floating point number"
+                    errorManger->compilation_error((octal ? "octal floating point number"
                                                    :hex ? "hex floating point number"
                                                    :"binary floaing point number"), line, col);
                 }
                 if (has_period) {
-                    errorManger.compilation_error("multiple periods in a number", line, col);
+                    errorManger->compilation_error("multiple periods in a number", line, col);
                 }
                 has_period = true;
             }
@@ -192,22 +197,20 @@ namespace step {
         }
 
         TokenKind kind{t_ident};
-        if (ident == "print")
-            kind = t_print;
-        else if (ident == "input")
-            kind = t_input;
-        else if (ident == "def")
+        if (ident == "def")
             kind = t_def;
         else if (ident == "true")
             kind = t_true;
         else if (ident == "false")
             kind = t_false;
+        else if (ident == "return")
+            kind = t_return;
 
         add_t(kind, std::move(ident));
     }
 
     void Lexer::unknown_token(char c) {
-        errorManger.compilation_error("unknown token", line, col);
+        errorManger->compilation_error("unknown token", line, col);
     }
 
     void Lexer::string_token(char c) {
@@ -216,16 +219,33 @@ namespace step {
         auto save_col = col;
         c = peek_char();
         while (c != '"' && !is_eof(c)) {
-            str += next_char();
+            c = next_char();
             if (c == '\n') {
-                ++line;
-                col = 0;
+                errorManger->compilation_error("multiline string is not supported", line, col);
             }
+            if (c == '\\') {
+                c = next_char();
+                switch (c) {
+                    case 'n': c = '\n'; break;
+                    case 't': c = '\t'; break;
+                    case 'v': c = '\v'; break;
+                    case 'a': c = '\a'; break;
+                    case '\\': c = '\\'; break;
+                    case '\'': c = '\''; break;
+                    case '\"': c = '"'; break;
+                    case '\b': c = '\b'; break;
+                    case '\r': c = '\r'; break;
+                    default:
+                        errorManger->compilation_error("invalid escape sequence", line, col);
+                        break;
+                }
+            }
+            str += c;
             c = peek_char();
         }
 
         if (is_eof(c))
-            errorManger.compilation_error("unterminated string", save_line, save_col);
+            errorManger->compilation_error("unterminated string", save_line, save_col);
 
         if (c == '"')
             next_char();
