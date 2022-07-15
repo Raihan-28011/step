@@ -20,10 +20,10 @@ In step, everything is object, even the primitives are also object.
         print(stringVar, "\n");
     ```
 * functions
-    ```
+    ```python
         def function() {    # Currently arguments are not supported
             print("Calling from function body\n");
         }
     ```
 * Operators
-    - `+`, `-`, `*`, `/`, `%`, `<`, `>`, `<=`, `>=`, `==`, `!=`, `||`, `&&`
+    - `+`, `-`, `*`, `**`, `/`, `%`, `<`, `>`, `<=`, `>=`, `==`, `!=`, `||`, `&&`
