@@ -7,3 +7,4 @@ cmake-build-release
 compile_commands.json
 src/*.vim
 src/*.*rc
+.cache
