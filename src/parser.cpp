@@ -137,9 +137,106 @@ namespace step {
         std::cout << " ';' )";
     }
 
-    ExpressionNodePtr Parser::parse_expression() {
-        return parse_term(0);
+    void Parser::print(IfStatement *stmt) {
+        std::cout << "( 'if' '(' ";
+        stmt->get_condition()->accept(this);
+        std::cout << "')'" <<  (stmt->get_body().size() > 1 ? " '{'\n" : "\n");
+        for (auto const &i: stmt->get_body())
+            i->accept(this);
+        std::cout << (stmt->get_body().size() > 1 ? "\n'}'\n" : "\n")
+                  << "')'\n";
+        for (auto const &i: stmt->get_elifs())
+            i->accept(this);
     }
+
+    void Parser::print(ElseStatement *stmt) {
+        std::cout << "( 'else'";
+        std::cout << (stmt->get_body().size() > 1 ? " '{'\n" : "");
+        for (auto const &i: stmt->get_body())
+            i->accept(this);
+        std::cout << (stmt->get_body().size() > 1 ? "\n'}'\n" : "\n")
+                  << "')'\n";
+    }
+
+    void Parser::print(ElifStatement *stmt) {
+        std::cout << "( 'elif' '(' ";
+        stmt->get_condition()->accept(this);
+        std::cout << "')'" <<  (stmt->get_body().size() > 1 ? " '{'\n" : "");
+        for (auto const &i: stmt->get_body())
+            i->accept(this);
+        std::cout << (stmt->get_body().size() > 1 ? "\n'}'\n" : "\n")
+                  << "')'\n";
+    }
+
+    ExpressionNodePtr Parser::parse_expression() {
+        return parse_logicalOr(0);
+    }
+
+
+    ExpressionNodePtr Parser::parse_logicalOr(i32 precedence) {
+        auto left = parse_equality(precedence);
+        ExpressionNodePtr right = nullptr;
+        while (precedence < binary_precedence(t_logicalor) && eat_if(t_logicalor)) {
+            auto tok = tokens.at(cur_token);
+            right = parse_term(binary_precedence(tok.get_kind()));
+
+            if (!right) {
+                errorManager->compilation_error("expected expression", tok.get_line(), tok.get_col());
+            }
+
+            left = std::make_shared<BinaryExpression>(tok.get_kind(), left, right);
+        }
+        return left;
+    }
+
+    ExpressionNodePtr Parser::parse_logicalAnd(i32 precedence) {
+        auto left = parse_equality(precedence);
+        ExpressionNodePtr right = nullptr;
+        while (precedence < binary_precedence(t_logicaland) && eat_if(t_logicaland)) {
+            auto tok = tokens.at(cur_token);
+            right = parse_term(binary_precedence(tok.get_kind()));
+
+            if (!right) {
+                errorManager->compilation_error("expected expression", tok.get_line(), tok.get_col());
+            }
+
+            left = std::make_shared<BinaryExpression>(tok.get_kind(), left, right);
+        }
+        return left;
+    }
+
+    ExpressionNodePtr Parser::parse_equality(i32 precedence) {
+        auto left = parse_comparison(precedence);
+        ExpressionNodePtr right = nullptr;
+        while (precedence < binary_precedence(t_equalequal) && eat_if({t_equalequal, t_notequal})) {
+            auto tok = tokens.at(cur_token);
+            right = parse_term(binary_precedence(tok.get_kind()));
+
+            if (!right) {
+                errorManager->compilation_error("expected expression", tok.get_line(), tok.get_col());
+            }
+
+            left = std::make_shared<BinaryExpression>(tok.get_kind(), left, right);
+        }
+        return left;
+    }
+
+    ExpressionNodePtr Parser::parse_comparison(i32 precedence) {
+        auto left = parse_term(precedence);
+        ExpressionNodePtr right = nullptr;
+        while (precedence < binary_precedence(t_less) && eat_if({t_less, t_lessequal, t_greater, t_greaterequal})) {
+            auto tok = tokens.at(cur_token);
+            right = parse_term(binary_precedence(tok.get_kind()));
+
+            if (!right) {
+                errorManager->compilation_error("expected expression", tok.get_line(), tok.get_col());
+            }
+
+            left = std::make_shared<BinaryExpression>(tok.get_kind(), left, right);
+        }
+        return left;
+    }
+
 
     ExpressionNodePtr Parser::parse_term(i32 precedence) {
         auto left = parse_factor(precedence);
@@ -186,7 +283,7 @@ namespace step {
                 case t_ident:
                 {
                     if (is_next(t_lparen)) return parse_function_call(tok);
-                    else return std::make_shared<ConstantExpression>(tok);
+                    else return std::make_shared<IdentifierExpression>(tok);
                 }
                 case t_lparen:
                 {
@@ -226,13 +323,25 @@ namespace step {
 
     i32 Parser::binary_precedence(TokenKind op) {
         switch (op) {
+            case t_logicalor:
+                return 1;
+            case t_logicaland:
+                return 2;
+            case t_equalequal:
+            case t_notequal:
+                return 3;
+            case t_less:
+            case t_lessequal:
+            case t_greater:
+            case t_greaterequal:
+                return 4;
             case t_plus:
             case t_minus:
-                return 1;
+                return 5;
             case t_star:
             case t_slash:
             case t_modulus:
-                return 2;
+                return 6;
             case t_ident:
             case t_num:
             case t_string:
@@ -240,7 +349,7 @@ namespace step {
             case t_false:
             case t_null:
             case t_lparen:
-                return 3;
+                return 7;
             default:
                 return 0;
         }
@@ -261,6 +370,12 @@ namespace step {
             return parse_function_def_statement();
         } else if (is_next(t_return)) {
             return parse_return_statement();
+        } else if (is_next(t_if)) {
+            return parse_if_statement();
+        } else if (is_next(t_else)) {
+            return parse_else_statement();
+        } else if (is_next(t_elif)) {
+            return parse_elif_statement();
         } else if (is_next(t_input)) {
             // TODO: implement parse_input_statement
         } else {
@@ -336,7 +451,7 @@ namespace step {
         }
 
         return std::make_shared<AssignmentStatement>(lhs, rhs);
-    }
+    } 
 
     ExpressionNodePtr Parser::parse_function_call(Token const &name) {
         if (!eat_if(t_lparen)) {
@@ -437,6 +552,12 @@ namespace step {
             case t_string:
                 cur_frame->push(new String(constant.get_tok()));
                 break;
+            case t_true:
+                cur_frame->push(new Boolean(true));
+                break;
+            case t_false:
+                cur_frame->push(new Boolean(false));
+                break;
             default:
                 break;
         }
@@ -450,7 +571,17 @@ namespace step {
         rhs->accept_evaluator(this);
 
         auto r = cur_frame->pop(), l = cur_frame->pop();
+        r->inc_refcount();
+        l->inc_refcount();
         Argument::ref_t args = new Argument({r});
+
+        if (l->get_type() != r->get_type()) {
+            delete l;
+            delete r;
+            delete args;
+            errorManager->runtime_error("invalid binary operation", *cur_frame);
+        }
+
         switch (op) {
             case t_plus:
                 cur_frame->push(l->call_object_specific_method("add", args));
@@ -461,20 +592,46 @@ namespace step {
             case t_starstar:
                 cur_frame->push(l->call_object_specific_method("pow", args));
                 break;
+            case t_modulus:
+                cur_frame->push(l->call_object_specific_method("mod", args));
+                break;
             case t_minus:
                 cur_frame->push(l->call_object_specific_method("sub", args));
                 break;
             case t_slash:
                 cur_frame->push(l->call_object_specific_method("div", args));
                 break;
+            case t_equalequal:
+                cur_frame->push(l->call_object_specific_method("eq", args));
+                break;
+            case t_notequal:
+                cur_frame->push(l->call_object_specific_method("neq", args));
+                break;
+            case t_less:
+                cur_frame->push(l->call_object_specific_method("lt", args));
+                break;
+            case t_greater:
+                cur_frame->push(l->call_object_specific_method("gt", args));
+                break;
+            case t_lessequal:
+                cur_frame->push(l->call_object_specific_method("lteq", args));
+                break;
+            case t_greaterequal:
+                cur_frame->push(l->call_object_specific_method("gteq", args));
+                break;
             default:
                 break;
         }
 
         if (op != t_equal) {
-            delete l;
-            delete r;
             delete args;
+
+            l->dec_refcount();
+            r->dec_refcount();
+            if (l->get_refcount() == 0)
+                delete l;
+            if (r->get_refcount() == 0)
+                delete r;
         }
     }
 
@@ -490,6 +647,7 @@ namespace step {
         } else if (cur_frame->is_user_defined(name)) {
             auto func = cur_frame->get_function(name);
             evaluate(func->get_logic());
+            func->dec_refcount();
         }
     }
 
@@ -520,17 +678,28 @@ namespace step {
         expr->accept_evaluator(this);
         auto top = cur_frame->top();
         cur_frame->pop();
-        delete top;
+        top->dec_refcount();
+        if (top->get_refcount() == 0)
+            delete top;
     }
 
     void Parser::__builtin_print_function(i64 args) {
         auto t = args;
         Object::size_t printed_char = 0;
+        stack<Frame::ref_t> arguments;
         while (t--) {
             auto top = cur_frame->top();
             cur_frame->pop();
+            arguments.push(top);
+        }
+
+        while (arguments.size() > 0) {
+            auto top = arguments.top();
+            arguments.pop();
             printed_char += top->print(std::cout);
-            delete top;
+            top->dec_refcount();
+            if (top->get_refcount() == 0)
+                delete top;
         }
         cur_frame->push(new Integer(std::to_string(printed_char)));
     }
@@ -560,6 +729,213 @@ namespace step {
         return_statement_evaluated = true;
     }
 
+    StatementNodePtr Parser::parse_if_statement() {
+        eat_if(t_if);
+        Token tok = tokens.at(cur_token);
+        if (!eat_if(t_lparen)) {
+            errorManager->compilation_error("expected '('", tok.get_line(), tok.get_col());
+        }
 
+        if (is_next(t_rparen)) {
+            next_token();
+            tok = tokens.at(cur_token);
+            errorManager->compilation_error("expected expression", tok.get_line(), tok.get_col());
+        }
 
+        auto condition = parse_expression();
+        if (!eat_if(t_rparen)) {
+            tok = tokens.at(cur_token);
+            errorManager->compilation_error("expected ')'", tok.get_line(), tok.get_col());
+        }
+
+        vector<StatementNodePtr> body;
+        if (eat_if(t_lbrace)) {
+            while (!is_next(t_rbrace)) {
+                body.push_back(parse_statement());
+            }
+
+            if (!eat_if(t_rbrace)) {
+                tok = next_token();
+                errorManager->compilation_error("expected '}'", tok.get_line(), tok.get_col());
+            }
+        } else {
+            body.push_back(parse_statement());
+        }
+
+        parsed_if = true;
+        vector<StatementNodePtr> elifs;
+        while (is_next(t_elif)) {
+            elifs.push_back(parse_statement());
+        }
+
+        if (is_next(t_else)) {
+            elifs.push_back(parse_statement());
+        }
+
+        return std::make_shared<IfStatement>(condition, std::move(body), std::move(elifs));
+    }
+
+    StatementNodePtr Parser::parse_else_statement() {
+        eat_if(t_else);
+        if (!parsed_if) {
+            parsed_if = false;
+            auto tok = tokens.at(cur_token);
+            errorManager->compilation_error("else has no if block", tok.get_line(), tok.get_col());
+        }
+
+        vector<StatementNodePtr> body;
+        if (eat_if(t_lbrace)) {
+            while (!is_next(t_rbrace)) {
+                body.push_back(parse_statement());
+            }
+
+            if (!eat_if(t_rbrace)) {
+                auto tok = next_token();
+                errorManager->compilation_error("expected '}'", tok.get_line(), tok.get_col());
+            }
+        } else {
+            body.push_back(parse_statement());
+        }
+
+        parsed_if = false;
+
+        return std::make_shared<ElseStatement>(std::move(body));
+    }
+
+    StatementNodePtr Parser::parse_elif_statement() {
+        eat_if(t_elif);
+        Token tok = tokens.at(cur_token);
+        if (!parsed_if) {
+            parsed_if = false;
+            tok = tokens.at(cur_token);
+            errorManager->compilation_error("else has no if block", tok.get_line(), tok.get_col());
+        }
+
+        if (!eat_if(t_lparen)) {
+            errorManager->compilation_error("expected '('", tok.get_line(), tok.get_col());
+        }
+
+        if (is_next(t_rparen)) {
+            next_token();
+            tok = tokens.at(cur_token);
+            errorManager->compilation_error("expected expression", tok.get_line(), tok.get_col());
+        }
+
+        auto condition = parse_expression();
+        if (!eat_if(t_rparen)) {
+            tok = tokens.at(cur_token);
+            errorManager->compilation_error("expected ')'", tok.get_line(), tok.get_col());
+        }
+
+        vector<StatementNodePtr> body;
+        if (eat_if(t_lbrace)) {
+            while (!is_next(t_rbrace)) {
+                body.push_back(parse_statement());
+            }
+
+            if (!eat_if(t_rbrace)) {
+                tok = next_token();
+                errorManager->compilation_error("expected '}'", tok.get_line(), tok.get_col());
+            }
+        } else {
+            body.push_back(parse_statement());
+        }
+
+        if (!is_next(t_elif) || !is_next(t_else))
+            parsed_if = false;
+
+        return std::make_shared<ElifStatement>(condition, std::move(body));
+
+    }
+
+    void Parser::evaluate(IfStatement *stms) {
+        auto cond = stms->get_condition();
+        auto const &body = stms->get_body();
+        auto const &elifs = stms->get_elifs();
+
+        cond->accept_evaluator(this);
+        auto val = cur_frame->top();
+        cur_frame->pop();
+        auto bool_value = dynamic_cast<Boolean*>(val)->get_value();
+        val->dec_refcount();
+        if (val->get_refcount() == 0)
+            delete val;
+        if (bool_value) {
+            for (auto &stm: body)
+                stm->accept_evaluator(this);
+        } else {
+            for (auto &elif: elifs) {
+                elif->accept_evaluator(this);
+                val = cur_frame->top();
+                cur_frame->pop();
+                // check the top value which was put by elif or else statement
+                if (dynamic_cast<Boolean*>(val)->get_value()) {
+                    delete val;
+                    break;
+                }
+
+                delete val;
+            }
+        }
+    }
+
+    void Parser::evaluate(ElseStatement *stms) {
+        auto const &body = stms->get_body();
+        for (auto &stm: body)
+            stm->accept_evaluator(this);
+        cur_frame->push(new Boolean(true));
+    }
+
+    void Parser::evaluate(ElifStatement *stms) {
+        auto cond = stms->get_condition();
+        auto const &body = stms->get_body();
+
+        cond->accept_evaluator(this);
+        auto val = cur_frame->top();
+        auto bool_value = dynamic_cast<Boolean*>(val)->get_value();
+        if (bool_value) {
+            for (auto &stm: body)
+                stm->accept_evaluator(this);
+        }
+
+        // Do not delete val. Because this val will be on top of the stack and if
+        // statement will check this val, if it was true, then if statement will stop
+        // executing rest of the elif and else blocks, otherwise if will continue
+    }
+
+    void Parser::evaluate(IdentifierExpression *expr) {
+        auto const &name = expr->get_ident();
+        if (cur_frame->is_defined_variable(name.get_tok())) {
+            auto val = cur_frame->at(cur_frame->get_variable(name.get_tok()));
+            cur_frame->push(dynamic_cast<Variable*>(val)->get_value());
+            val->dec_refcount();
+        } else if (cur_frame->is_defined_builtin(name.get_tok())) {
+            // TODO: implement assigning builtin functions
+        } else if (cur_frame->is_user_defined(name.get_tok())) {
+            auto val = cur_frame->get_function(name.get_tok());
+            val->inc_refcount();
+            cur_frame->push(val);
+        } else {
+            errorManager->compilation_error("undefiend variable '" + name.get_tok() + "'", name.get_line(), name.get_col());
+        }
+    }
+
+    void Parser::evaluate(AssignmentStatement *stms) {
+        auto const &left = stms->get_left();
+        auto const &right = stms->get_right();
+        
+        right->accept_evaluator(this);
+
+        Token const name = left->get_ident();
+        if (cur_frame->is_defined_variable(name.get_tok())) {
+            auto index = cur_frame->get_variable(name.get_tok());
+            auto val = cur_frame->at(index);
+            dynamic_cast<Variable*>(val)->set_new_value(cur_frame->pop());
+            val->dec_refcount();
+        } else {
+            auto val = cur_frame->pop();
+            auto var = new Variable(val);
+            cur_frame->add_variable(name.get_tok(), var);
+        }
+    }
 } // step

@@ -20,7 +20,7 @@
 #include <iomanip>
 #include <sstream>
 
-#define __DEBUG_STEP__
+/*#define __DEBUG_STEP__*/
 
 using i8 = std::int8_t;
 using i16 = std::int16_t;

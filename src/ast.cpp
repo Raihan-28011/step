@@ -44,7 +44,7 @@ namespace step {
         acceptor->evaluate(this);
     }
 
-    AssignmentStatement::AssignmentStatement(ExpressionNodePtr lhs, ExpressionNodePtr rhs)
+    AssignmentStatement::AssignmentStatement(std::shared_ptr<IdentifierExpression> lhs, ExpressionNodePtr rhs)
         : left{lhs}, right{rhs}
     {
     }
@@ -54,7 +54,7 @@ namespace step {
     }
 
     void AssignmentStatement::accept_evaluator(StatementEvaluatorVisitor *acceptor) {
-        (void)acceptor;
+        acceptor->evaluate(this);
     }
 
     ExpressionStatement::ExpressionStatement(ExpressionNodePtr exp)
@@ -107,7 +107,7 @@ namespace step {
     }
 
     void IdentifierExpression::accept_evaluator(ExpressionEvaluatorVisitor *acceptor) {
-        (void)acceptor;
+        acceptor->evaluate(this);
     }
 
     ReturnStatement::ReturnStatement(ExpressionNodePtr exp)
@@ -120,6 +120,45 @@ namespace step {
     }
 
     void ReturnStatement::accept_evaluator(StatementEvaluatorVisitor *acceptor) {
+        acceptor->evaluate(this);
+    }
+
+    IfStatement::IfStatement(ExpressionNodePtr cond, vector<StatementNodePtr> &&bd, vector<StatementNodePtr> &&elif)
+        : condition{cond}, body{std::move(bd)}, elifs{std::move(elif)}
+    {
+    }
+
+    void IfStatement::accept(StatementVisitor *acceptor) {
+        acceptor->print(this);
+    }
+
+    void IfStatement::accept_evaluator(StatementEvaluatorVisitor *acceptor) {
+        acceptor->evaluate(this);
+    }
+
+    ElseStatement::ElseStatement(vector<StatementNodePtr> &&bd)
+        : body{std::move(bd)}
+    {
+    }
+
+    void ElseStatement::accept(StatementVisitor *acceptor) {
+        acceptor->print(this);
+    }
+
+    void ElseStatement::accept_evaluator(StatementEvaluatorVisitor *acceptor) {
+        acceptor->evaluate(this);
+    }
+
+    ElifStatement::ElifStatement(ExpressionNodePtr cond, vector<StatementNodePtr> &&bd)
+        : condition{cond}, body{std::move(bd)}
+    {
+    }
+
+    void ElifStatement::accept(StatementVisitor *acceptor) {
+        acceptor->print(this);
+    }
+
+    void ElifStatement::accept_evaluator(StatementEvaluatorVisitor *acceptor) {
         acceptor->evaluate(this);
     }
 } // step

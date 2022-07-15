@@ -23,11 +23,6 @@ namespace step {
 
         ~ErrorManager() = default;
 
-        static ErrorManager &get_instance(string const &cont, string const &fn) {
-            static ErrorManager errorManager{cont, fn};
-            return errorManager;
-        }
-
         void compilation_error(string msg, int line, int col) {
             std::cerr << fname
                       << ":[" << line << ":" << col << "] error: "
@@ -37,9 +32,13 @@ namespace step {
             std::exit(-1);
         }
 
-        void runtime_error(string msg, Frame const &frame) {
+        void runtime_error(string msg, Frame const &frame /*, int line = -1, int col = -1 */) {
             /* cur_frame.stack_trace(); */
-            std::cerr << "[ERROR]\t" << msg << '\n';
+            std::cerr << fname
+                      << ": error: "
+                      << msg << '\n';
+            // std::cerr << string(content.begin()+lines[line-1].first, content.begin()+lines[line-1].second) << '\n'
+                      //<< string(col-1, ' ') << "^\n";
             std::exit(-1);
         }
 

@@ -28,25 +28,30 @@ namespace step {
     };
 
     struct Argument;
+    struct Boolean;
 
     struct Object {
         using ref_t = Object *;
         using smart_ref_t = ref_t;
         using args_ref_t = Argument *;
         using size_t = u64;
+        using ref_count_t = size_t;
 
         explicit Object(ObjectDataType t)
             : type{t} { }
 
         virtual ~Object() = default;
 
+        void inc_refcount() { ++refcount; }
+        void dec_refcount() { (refcount > 0 ? --refcount : refcount); }
+        ref_count_t get_refcount() { return refcount; }
         ObjectDataType get_type() const { return type; }
         virtual Object::size_t print(std::ostream &os) const = 0;
-        /*virtual smart_ref_t addition(smart_ref_t obj) = 0;*/
         virtual smart_ref_t call_object_specific_method(string name, args_ref_t args) = 0;
     protected:
         ObjectDataType type;
         ref_t _this{this};
+        ref_count_t refcount{1};
     };
 
     struct Argument : public Object {
@@ -61,6 +66,13 @@ namespace step {
         }
 
         Argument(std::initializer_list<arg_t> args);
+        ~Argument() override {
+            for (auto &i: args) {
+                i->dec_refcount();
+                if (i->get_refcount() == 0)
+                    delete i;
+            }
+        }
 
         arg_t get_arg(index_t index);
         Object::size_t print(std::ostream &os) const override;
@@ -156,8 +168,10 @@ namespace step {
     struct Integer;
     struct NumberMethods {
         using binary_operation = Integer *(Integer::*)(Argument::ref_t);
+        using bool_bin_op = Boolean *(Integer::*)(Argument::ref_t);
 
         umap<string, binary_operation> b_methods;
+        umap<string, bool_bin_op> bool_b_methods;
     };
 
 
@@ -168,6 +182,7 @@ namespace step {
         using num_t = i64;
 #endif
         using smart_ref_t = Integer *;
+        using smart_bool_ref_t = Boolean *;
         using num_methods_t = NumberMethods *;
         using mask_t = u64;
 
@@ -221,7 +236,54 @@ namespace step {
         Integer::smart_ref_t sub_int(Integer::smart_ref_t b);
         Integer::smart_ref_t div_int_wrapper(Argument::ref_t args);
         Integer::smart_ref_t div_int(Integer::smart_ref_t b);
+        Integer::smart_ref_t mod_int_wrapper(Argument::ref_t args);
+        Integer::smart_ref_t mod_int(Integer::smart_ref_t b);
+        Integer::smart_bool_ref_t eq_int_wrapper(Argument::ref_t args);
+        Integer::smart_bool_ref_t eq_int(Integer::smart_ref_t b);
+        Integer::smart_bool_ref_t neq_int_wrapper(Argument::ref_t args);
+        Integer::smart_bool_ref_t neq_int(Integer::smart_ref_t b);
+        Integer::smart_bool_ref_t lt_int_wrapper(Argument::ref_t args);
+        Integer::smart_bool_ref_t lt_int(Integer::smart_ref_t b);
+        Integer::smart_bool_ref_t lteq_int_wrapper(Argument::ref_t args);
+        Integer::smart_bool_ref_t lteq_int(Integer::smart_ref_t b);
+        Integer::smart_bool_ref_t gt_int_wrapper(Argument::ref_t args);
+        Integer::smart_bool_ref_t gt_int(Integer::smart_ref_t b);
+        Integer::smart_bool_ref_t gteq_int_wrapper(Argument::ref_t args);
+        Integer::smart_bool_ref_t gteq_int(Integer::smart_ref_t b);
     };
+
+    struct Boolean : public Object {
+        using bool_t = bool;
+    public:
+        explicit Boolean(bool_t val);
+
+        bool_t get_value() { return value; }
+        Object::size_t print(std::ostream &os) const override;
+        Object::smart_ref_t call_object_specific_method(string name, args_ref_t args) override;
+    private:
+        bool_t value;
+    };
+
+    struct Variable : public Object {
+        using value_t = Object *;
+    public:
+        Variable();
+        Variable(value_t obj);
+        ~Variable() override {
+            value->dec_refcount();
+            if (value->get_refcount() == 0)
+                delete value;
+        }
+         
+        value_t const &get_value() { value->inc_refcount(); return value; }
+        void set_new_value(value_t val);
+        Object::size_t print(std::ostream &os) const override;
+        Object::smart_ref_t call_object_specific_method(string name, args_ref_t args) override;
+    private:
+        value_t value;
+        /*bool is_const = false;  */
+    };
+
 } // step
 
 #endif //STEP_OBJECT_H

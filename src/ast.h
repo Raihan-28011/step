@@ -24,7 +24,9 @@ namespace step {
     struct ExpressionStatement;
     struct FunctionDefStatement;
     struct ReturnStatement;
-    struct IfElseStatement;
+    struct IfStatement;
+    struct ElseStatement;
+    struct ElifStatement;
     using StatementNodePtr = std::shared_ptr<StatementNode>;
 
     struct ExpressionVisitor {
@@ -37,6 +39,7 @@ namespace step {
     struct ExpressionEvaluatorVisitor {
         virtual void evaluate(ConstantExpression *expr) = 0;
         virtual void evaluate(BinaryExpression *expr) = 0;
+        virtual void evaluate(IdentifierExpression *expr) = 0;
         virtual void evaluate(FunctionCallExpression *expr) = 0;
     };
 
@@ -102,12 +105,19 @@ namespace step {
         virtual void print(ExpressionStatement *stmt) = 0;
         virtual void print(FunctionDefStatement *stmt) = 0;
         virtual void print(ReturnStatement *stmt) = 0;
+        virtual void print(IfStatement *stmt) = 0;
+        virtual void print(ElseStatement *stmt) = 0;
+        virtual void print(ElifStatement *stmt) = 0;
     };
 
     struct StatementEvaluatorVisitor {
         virtual void evaluate(PrintStatement *stmt) = 0;
         virtual void evaluate(ExpressionStatement *stmt) = 0;
         virtual void evaluate(ReturnStatement *stmt) = 0;
+        virtual void evaluate(IfStatement *stmt) = 0;
+        virtual void evaluate(ElseStatement *stmt) = 0;
+        virtual void evaluate(ElifStatement *stmt) = 0;
+        virtual void evaluate(AssignmentStatement *stmt) = 0;
         /*virtual void evaluate(FunctionDefStatement *stmt) = 0;*/
     };
 
@@ -116,6 +126,9 @@ namespace step {
         s_ret,
         s_assign,
         s_expr,
+        s_if,
+        s_else,
+        s_elif,
     };
 
     struct StatementNode {
@@ -139,15 +152,15 @@ namespace step {
 
     struct AssignmentStatement : public StatementNode {
     public:
-        AssignmentStatement(ExpressionNodePtr lhs, ExpressionNodePtr rhs);
+        AssignmentStatement(std::shared_ptr<IdentifierExpression> lhs, ExpressionNodePtr rhs);
 
-        ExpressionNodePtr const &get_left() { return left; }
+        std::shared_ptr<IdentifierExpression> const &get_left() { return left; }
         ExpressionNodePtr const &get_right() { return right; }
         void accept(StatementVisitor *acceptor) override;
         void accept_evaluator(StatementEvaluatorVisitor *acceptor) override;
         StatementKind get_type() override { return s_assign; }
     private:
-        ExpressionNodePtr left;
+        std::shared_ptr<IdentifierExpression> left;
         ExpressionNodePtr right;
     };
 
@@ -194,6 +207,48 @@ namespace step {
         StatementKind get_type() override { return s_ret; }
     private:
         ExpressionNodePtr expr;
+    };
+
+    struct IfStatement : public StatementNode {
+    public:
+        IfStatement(ExpressionNodePtr cond, vector<StatementNodePtr> &&bd, vector<StatementNodePtr> &&elif);
+
+        void accept(StatementVisitor *acceptor) override;
+        void accept_evaluator(StatementEvaluatorVisitor *acceptor) override;
+        StatementKind get_type() override { return s_if; }
+        ExpressionNodePtr const &get_condition() { return condition; }
+        vector<StatementNodePtr> const &get_body() { return body; }
+        vector<StatementNodePtr> const &get_elifs() { return elifs; }
+    private:
+        ExpressionNodePtr condition;
+        vector<StatementNodePtr> body;
+        vector<StatementNodePtr> elifs;
+    };
+
+    struct ElseStatement : public StatementNode {
+    public:
+        ElseStatement(vector<StatementNodePtr> &&bd);
+
+        void accept(StatementVisitor *acceptor) override;
+        void accept_evaluator(StatementEvaluatorVisitor *acceptor) override;
+        StatementKind get_type() override { return s_if; }
+        vector<StatementNodePtr> const &get_body() { return body; }
+    private:
+        vector<StatementNodePtr> body;
+    };
+
+    struct ElifStatement : public StatementNode {
+    public:
+        ElifStatement(ExpressionNodePtr cond, vector<StatementNodePtr> &&bd);
+
+        void accept(StatementVisitor *acceptor) override;
+        void accept_evaluator(StatementEvaluatorVisitor *acceptor) override;
+        StatementKind get_type() override { return s_if; }
+        ExpressionNodePtr const &get_condition() { return condition; }
+        vector<StatementNodePtr> const &get_body() { return body; }
+    private:
+        ExpressionNodePtr condition;
+        vector<StatementNodePtr> body;
     };
 
 } // step

@@ -206,11 +206,20 @@ namespace step {
         op_methods = new NumberMethods {
             /*.addition = &Integer::add_int,*/
             .b_methods = {
-                    {"add", &Integer::add_int_wrapper},
+                    {"add",  &Integer::add_int_wrapper},
                     {"mult", &Integer::mult_int_wrapper},
-                    {"pow", &Integer::pow_int_wrapper},
-                    {"sub", &Integer::sub_int_wrapper},
-                    {"div", &Integer::div_int_wrapper},
+                    {"pow",  &Integer::pow_int_wrapper},
+                    {"sub",  &Integer::sub_int_wrapper},
+                    {"div",  &Integer::div_int_wrapper},
+                    {"mod", &Integer::mod_int_wrapper},
+            },
+            .bool_b_methods = {
+                    {"eq", &Integer::eq_int_wrapper},
+                    {"neq", &Integer::neq_int_wrapper},
+                    {"lt", &Integer::lt_int_wrapper},
+                    {"gt", &Integer::gt_int_wrapper},
+                    {"lteq", &Integer::lteq_int_wrapper},
+                    {"gteq", &Integer::gteq_int_wrapper},
             }
         };
     }
@@ -303,6 +312,8 @@ namespace step {
     Object::smart_ref_t Integer::call_object_specific_method(string name, Object::args_ref_t args) {
         if (op_methods->b_methods.find(name) != op_methods->b_methods.end())
             return (this->*op_methods->b_methods[name])(args);
+        else if (op_methods->bool_b_methods.find(name) != op_methods->bool_b_methods.end())
+            return (this->*op_methods->bool_b_methods[name])(args);
         return nullptr;
     }
 
@@ -480,15 +491,74 @@ namespace step {
         return Integer::smart_ref_t(new Integer(std::to_string(_num / b->_num)));
     }
 
+    Integer::smart_bool_ref_t Integer::eq_int_wrapper(Argument::ref_t args) {
+        return eq_int(dynamic_cast<Integer::smart_ref_t>(args->get_arg(0)));
+    }
+
+    Integer::smart_bool_ref_t Integer::eq_int(Integer::smart_ref_t b) {
+        return Integer::smart_bool_ref_t(new Boolean(_num == b->_num));
+    }
+
+    Integer::smart_bool_ref_t Integer::neq_int_wrapper(Argument::ref_t args) {
+        return neq_int(dynamic_cast<Integer::smart_ref_t>(args->get_arg(0)));
+    }
+
+    Integer::smart_bool_ref_t Integer::neq_int(Integer::smart_ref_t b) {
+        return Integer::smart_bool_ref_t(new Boolean(_num != b->_num));
+    }
+
+    Integer::smart_bool_ref_t Integer::lt_int_wrapper(Argument::ref_t args) {
+        return lt_int(dynamic_cast<Integer::smart_ref_t>(args->get_arg(0)));
+    }
+
+    Integer::smart_bool_ref_t Integer::lt_int(Integer::smart_ref_t b) {
+        return Integer::smart_bool_ref_t(new Boolean(_num < b->_num));
+    }
+
+    Integer::smart_bool_ref_t Integer::lteq_int_wrapper(Argument::ref_t args) {
+        return lteq_int(dynamic_cast<Integer::smart_ref_t>(args->get_arg(0)));
+    }
+
+    Integer::smart_bool_ref_t Integer::lteq_int(Integer::smart_ref_t b) {
+        return Integer::smart_bool_ref_t(new Boolean(_num <= b->_num));
+    }
+
+    Integer::smart_bool_ref_t Integer::gteq_int_wrapper(Argument::ref_t args) {
+        return gteq_int(dynamic_cast<Integer::smart_ref_t>(args->get_arg(0)));
+    }
+
+    Integer::smart_bool_ref_t Integer::gteq_int(Integer::smart_ref_t b) {
+        return Integer::smart_bool_ref_t(new Boolean(_num >= b->_num));
+    }
+
+    Integer::smart_bool_ref_t Integer::gt_int_wrapper(Argument::ref_t args) {
+        return gt_int(dynamic_cast<Integer::smart_ref_t>(args->get_arg(0)));
+    }
+
+    Integer::smart_bool_ref_t Integer::gt_int(Integer::smart_ref_t b) {
+        return Integer::smart_bool_ref_t(new Boolean(_num > b->_num));
+    }
+
+    Integer::smart_ref_t Integer::mod_int_wrapper(Argument::ref_t args) {
+        return mod_int(dynamic_cast<Integer::smart_ref_t>(args->get_arg(0)));
+    }
+
+    Integer::smart_ref_t Integer::mod_int(Integer::smart_ref_t b) {
+        return Integer::smart_ref_t(new Integer(std::to_string(_num % b->_num)));
+    }
+
     Argument::Argument(std::initializer_list<arg_t> ags)
         : Argument()
     {
+        for (auto &i: args)
+            i->inc_refcount();
         args.assign(ags);
     }
 
     Argument::arg_t Argument::get_arg(Argument::index_t index) {
         if (index >= args.size())
             return nullptr;
+        args.at(index)->inc_refcount();
         return args.at(index);
     }
 
@@ -508,15 +578,6 @@ namespace step {
         : Object(dt_function)
     {
     }
-
-/*
-    Function::Function(std::string name, Function::param_t ps)
-        : Function()
-    {
-        this->name = name;
-        params = ps;
-    }
-*/
 
     Function::~Function() {
         delete func;
@@ -538,4 +599,48 @@ namespace step {
     Object::smart_ref_t Function::call_object_specific_method(string name, Object::args_ref_t args) {
         return nullptr;
     }
+
+    Boolean::Boolean(Boolean::bool_t val)
+        : Object(dt_bool), value{val}
+    {
+    }
+
+    Object::size_t Boolean::print(std::ostream &os) const {
+        os << (value ? "true" : "false");
+        return (value ? 4 : 5);
+    }
+
+    Object::smart_ref_t Boolean::call_object_specific_method(string name, Object::args_ref_t args) {
+        return nullptr;
+    }
+
+    Variable::Variable()
+        : Object(dt_identifier)
+    {
+    }
+
+    Variable::Variable(Variable::value_t obj)
+        : Variable()
+    {
+        value = obj;
+        value->inc_refcount();
+    }
+
+    Object::size_t Variable::print(std::ostream &os) const {
+        return value->print(os);
+    }
+
+    Object::smart_ref_t Variable::call_object_specific_method(string name, Object::args_ref_t args) {
+        return nullptr;
+    }
+
+    void Variable::set_new_value(Variable::value_t val) {
+        value->dec_refcount();
+        if (value->get_refcount() == 0)
+            delete value;
+        value = val;
+        value->inc_refcount();
+    }
+
+
 } // step

@@ -51,6 +51,9 @@ namespace step {
         t_logicalor,
         t_starstar,
         t_return,
+        t_if,
+        t_else,
+        t_elif,
 
         t_unknown,
         t_total
@@ -334,6 +337,27 @@ namespace step {
                                            << ", col: "
                                            << col
                                            << '\n'; break;
+                case t_if: std::cout << tok_s[kind] << "\t'"
+                                         << tok
+                                         << "'\tat line: "
+                                         << line
+                                         << ", col: "
+                                         << col
+                                         << '\n'; break;
+                case t_else: std::cout << tok_s[kind] << "\t'"
+                                         << tok
+                                         << "'\tat line: "
+                                         << line
+                                         << ", col: "
+                                         << col
+                                         << '\n'; break;
+                case t_elif: std::cout << tok_s[kind] << "\t'"
+                                         << tok
+                                         << "'\tat line: "
+                                         << line
+                                         << ", col: "
+                                         << col
+                                         << '\n'; break;
 
                 default: std::cout << "t_unknown\t"
                                    << tok

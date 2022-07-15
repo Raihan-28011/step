@@ -40,4 +40,7 @@ std::array<string, step::TokenKind::t_total> const step::Token::tok_s {
         "t_logicalor",
         "t_starstar",
         "t_return",
+        "t_if",
+        "t_else",
+        "t_elif",
 };

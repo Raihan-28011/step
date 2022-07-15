@@ -1,0 +1,11 @@
+var = true;
+print(var, "\n");
+
+var = false;
+print(var, "\n");
+
+var = "string";
+print(var, "\n");
+
+var = 10;
+print(var, "\n");

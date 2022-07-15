@@ -1,0 +1,28 @@
+# Hoping to implement all of it
+def function1() {
+    var = 100;
+    var = "string";
+    var = 12.232;
+    var = true;
+
+#   write("{var}", stdout);
+
+    print("{var}");
+    print(var);
+}
+
+array = {};
+array.add(12);
+print(array); # { 12 }
+
+array[0] = 10;
+print("{array}"); # { 10 }
+
+# all inputs are strings
+# we have to convert them to different data types
+
+var = input().to_int(); # returns int from the input
+var = input().to_float(); # returns float from the input
+var = input(); # returns the string input itself
+
+input("{var:int} {var:float} {var:string}");

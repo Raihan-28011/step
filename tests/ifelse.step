@@ -1,0 +1,12 @@
+if (false) {
+    print("Hello from if!\n");
+} else if (true) {
+    print("Hello from elif\n");
+} else {
+    print("Hello from else\n"); 
+}
+
+print("Block after if else\n");
+
+def func() {
+}

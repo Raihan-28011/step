@@ -29,48 +29,64 @@ namespace step {
                 case ';': add_t(t_semicolon, ";"); break;
                 case ',': add_t(t_comma, ","); break;
                 case '=':
-                    if (peek_char() == '=')
+                    if (peek_char() == '=') {
+                        next_char();
                         add_t(t_equalequal, "==");
-                    else
+                        next_char();
+                    } else {
                         add_t(t_equal, "=");
+                    }
                     break;
                 case '"': string_token(c); break;
                 case '#': comment_token(c); break;
                 case '!':
-                    if (peek_char() == '=')
+                    if (peek_char() == '=') {
+                        next_char();
                         add_t(t_notequal, "!=");
-                    else
+                    } else {
                         add_t(t_bang, "!");
+                    }
                     break;
                 case '*':
-                    if (peek_char() == '*')
+                    if (peek_char() == '*') {
+                        next_char();
                         add_t(t_starstar, "**");
-                    else
+                    } else {
                         add_t(t_star, "*");
+                    }
                     break;
                 case '/': add_t(t_slash, "/"); break;
                 case '%': add_t(t_modulus, "%"); break;
                 case '|':
-                    if (peek_char() == '|')
+                    if (peek_char() == '|') {
+                        next_char();
                         add_t(t_logicalor, "||");
+                    }
                     break;
                 case '&':
-                    if (peek_char() == '&')
+                    if (peek_char() == '&') {
+                        next_char();
                         add_t(t_logicaland, "&&");
+                    }
                     break;
                 case '<':
-                    if (peek_char() == '=')
+                    if (peek_char() == '=') {
+                        next_char();
                         add_t(t_lessequal, "<=");
-                    else
+                    } else {
                         add_t(t_less, "<");
+                    }
                     break;
                 case '>':
-                    if (peek_char() == '=')
+                    if (peek_char() == '=') {
+                        next_char();
                         add_t(t_greaterequal, ">=");
-                    else
+                    } else {
                         add_t(t_greater, ">");
+                    }
                     break;
                 case '-':
+                    // TODO: fix this negative number
                     if (std::isdigit(peek_char()))
                         num_token(c);
                     else
@@ -205,6 +221,12 @@ namespace step {
             kind = t_false;
         else if (ident == "return")
             kind = t_return;
+        else if (ident == "if")
+            kind = t_if;
+        else if (ident == "else")
+            kind = t_else;
+        else if (ident == "elif")
+            kind = t_elif;
 
         add_t(kind, std::move(ident));
     }
