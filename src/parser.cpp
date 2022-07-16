@@ -92,6 +92,18 @@ namespace step {
         std::cout << "))";
     }
 
+    void Parser::print(ArrayExpression *stmt) {
+        std::cout << "[";
+        auto const &elems = stmt->get_elements();
+        for (auto const &i: elems) {
+            i->accept(this);
+            
+            if (i != elems.back())
+                std::cout << ", ";
+        }
+        std::cout << " ']";
+    }
+
 
     void Parser::print(PrintStatement *stmt) {
         std::cout << "('print' ";
@@ -273,7 +285,8 @@ namespace step {
     }
 
     ExpressionNodePtr Parser::parse_primary(i32 precedence) {
-        if (eat_if({t_num, t_string, t_true, t_false, t_ident, t_null, t_lparen})) {
+        if (eat_if({t_num, t_string, t_true, t_false, 
+                    t_ident, t_null, t_lparen, t_lsqbrace})) {
             auto tok = tokens.at(cur_token);
             switch (tok.get_kind()) {
                 case t_num:
@@ -295,6 +308,17 @@ namespace step {
                     }
                     return expr;
                 }
+                case t_lsqbrace:
+                {
+                    auto expr = parse_array_expression();
+                    if (!eat_if(t_rsqbrace)) {
+                        tok = next_token();
+                        errorManager->compilation_error("expected ']'", tok.get_line(), tok.get_col());
+                    }
+
+                    return expr;
+                }
+                    break;
                 default:
                     break;
             }
@@ -303,6 +327,24 @@ namespace step {
         auto tok = tokens.at(cur_token);
         errorManager->compilation_error("expected expression", tok.get_line(), tok.get_col());
         return nullptr;
+    }
+
+    ExpressionNodePtr Parser::parse_array_expression() {
+        vector<ExpressionNodePtr> elems;
+
+        while (!is_next(t_rsqbrace) && !is_next(t_eof)) {
+            elems.push_back(parse_expression());
+            eat_if(t_comma);
+        }
+
+        if (!is_next(t_rsqbrace)) {
+            auto tok = next_token();
+            errorManager->compilation_error("expected expression or ']'", 
+                    tok.get_line(), 
+                    tok.get_col());
+        }
+
+        return std::make_shared<ArrayExpression>(std::move(elems));
     }
 
     bool Parser::eat_if(TokenKind kind) {
@@ -1022,4 +1064,23 @@ namespace step {
             cur_frame->add_variable(name.get_tok(), var);
         }
     }
+
+    void Parser::evaluate(ArrayExpression *expr) {
+        vector<Array::elem_t> elems;
+        auto const &t = expr->get_elements();
+        for (auto &i: t) {
+            i->accept_evaluator(this);
+            auto top = cur_frame->pop();
+            elems.push_back(top);
+        }
+    
+        auto arr = new Array();
+        for (auto &i: elems) {
+            auto args = new Argument({i});
+            arr->call_object_specific_method("append", args);
+            delete args;
+        }
+        cur_frame->push(arr);
+    }
+
 } // step

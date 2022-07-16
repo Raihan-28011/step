@@ -16,6 +16,7 @@ namespace step {
     struct ConstantExpression;
     struct IdentifierExpression;
     struct FunctionCallExpression;
+    struct ArrayExpression;
     using ExpressionNodePtr = std::shared_ptr<ExpressionNode>;
 
     struct StatementNode;
@@ -34,6 +35,7 @@ namespace step {
         virtual void print(ConstantExpression *nexpr) = 0;
         virtual void print(IdentifierExpression *nexpr) = 0;
         virtual void print(FunctionCallExpression *nexpr) = 0;
+        virtual void print(ArrayExpression *nexpr) = 0;
     };
 
     struct ExpressionEvaluatorVisitor {
@@ -41,6 +43,7 @@ namespace step {
         virtual void evaluate(BinaryExpression *expr) = 0;
         virtual void evaluate(IdentifierExpression *expr) = 0;
         virtual void evaluate(FunctionCallExpression *expr) = 0;
+        virtual void evaluate(ArrayExpression *expr) = 0;
     };
 
     struct ExpressionNode {
@@ -97,6 +100,17 @@ namespace step {
         TokenKind op; // Operator
         ExpressionNodePtr left;
         ExpressionNodePtr right;
+    };
+
+    struct ArrayExpression : public ExpressionNode {
+    public:
+        explicit ArrayExpression(vector<ExpressionNodePtr> &&elems);
+
+        vector<ExpressionNodePtr> const &get_elements() { return elements; }
+        void accept_evaluator(ExpressionEvaluatorVisitor *acceptor) override;
+        void accept(ExpressionVisitor *acceptor) override;
+    private:
+        vector<ExpressionNodePtr> elements;
     };
 
     struct StatementVisitor {

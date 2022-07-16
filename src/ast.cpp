@@ -161,4 +161,17 @@ namespace step {
     void ElifStatement::accept_evaluator(StatementEvaluatorVisitor *acceptor) {
         acceptor->evaluate(this);
     }
+
+    ArrayExpression::ArrayExpression(vector<ExpressionNodePtr> &&elems)
+        : elements{std::move(elems)}
+    {
+    }
+
+    void ArrayExpression::accept(ExpressionVisitor *acceptor) {
+        acceptor->print(this);
+    }
+
+    void ArrayExpression::accept_evaluator(ExpressionEvaluatorVisitor *acceptor) {
+        acceptor->evaluate(this);
+    }
 } // step

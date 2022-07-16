@@ -29,6 +29,7 @@ namespace step {
         void print(ConstantExpression *nexpr) override;
         void print(IdentifierExpression *nexpr) override;
         void print(FunctionCallExpression *nexpr) override;
+        void print(ArrayExpression *nexpr) override;
 
         void print(PrintStatement *stmt) override;
         void print(AssignmentStatement *stmt) override;
@@ -68,6 +69,7 @@ namespace step {
         ExpressionNodePtr parse_primary(i32 precedence);
         ExpressionNodePtr parse_identifier();
         ExpressionNodePtr parse_function_call(Token const &name);
+        ExpressionNodePtr parse_array_expression();
         i32 binary_precedence(TokenKind op);
         i32 unary_precedence(TokenKind op);
 
@@ -95,6 +97,7 @@ namespace step {
         void evaluate(IdentifierExpression *expr) override;
         void evaluate(BinaryExpression *expr) override;
         void evaluate(FunctionCallExpression *expr) override;
+        void evaluate(ArrayExpression *expr) override;
 
         void __builtin_print_function(i64 args);
     };

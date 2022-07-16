@@ -25,6 +25,7 @@ namespace step {
         dt_arguments,
         dt_callable,
         dt_identifier,
+        dt_array,
     };
 
     struct Argument;
@@ -279,9 +280,42 @@ namespace step {
         void set_new_value(value_t val);
         Object::size_t print(std::ostream &os) const override;
         Object::smart_ref_t call_object_specific_method(string name, args_ref_t args) override;
+
+        bool is_function() { return value->get_type() == dt_function; }
+        bool is_array() { return value->get_type() == dt_array; }
     private:
         value_t value;
         /*bool is_const = false;  */
+    };
+
+
+    struct Array;
+    struct ArrayMethods {
+        using self_ref_func_t = Array *(Array::*)(Argument::ref_t);
+
+        umap<string, self_ref_func_t> self_methods;
+    };
+
+    struct Array : public Object {
+        using elem_t = Object *;
+        using self_ref_t = Array *;
+    public:
+        Array();
+        ~Array() override {
+            for (auto &i: elements) {
+                i->dec_refcount();
+                if (i->get_refcount() == 0)
+                    delete i;
+            }
+        }
+
+        Object::size_t print(std::ostream &os) const override;
+        Object::smart_ref_t call_object_specific_method(string name, args_ref_t args) override;
+        Array::self_ref_t append_wrapper(Argument::ref_t args); 
+        Array::self_ref_t append(elem_t elem); 
+    private:
+        vector<elem_t> elements;
+        ArrayMethods methods;
     };
 
 } // step

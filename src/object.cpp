@@ -260,19 +260,6 @@ namespace step {
         return ret;
     }
 
-/*    Object::smart_ref_t Integer::addition(Object::smart_ref_t b) {
-        auto _type = b->get_type();
-        switch (_type) {
-            case dt_int:
-                return add_int(static_cast<Integer::smart_ref_t>(b));
-                break;
-            default:
-                break;
-        }
-
-        return nullptr;
-    }*/
-
     Integer::smart_ref_t Integer::add_int(Integer::smart_ref_t b) {
 #ifdef __BIGNUM_IMPLEMENTED__
         auto lhs = _num, rhs = b->_num;
@@ -363,7 +350,7 @@ namespace step {
 #ifdef __BIGNUM_IMPLEMENTED__
         // bignum code goes here
 #else
-        // code for double goes here
+        // code for integer goes here
 #endif
         return *this;
     }
@@ -642,5 +629,43 @@ namespace step {
         value->inc_refcount();
     }
 
+    Array::Array()
+        : Object(dt_array)
+    {
+        methods = {
+            .self_methods = {
+                {"append", &Array::append_wrapper}
+            }
+        };
+    }
+
+    Object::size_t Array::print(std::ostream &os) const {
+        Object::size_t ret = 1;
+        os << "[";
+        for (auto &i: elements) {
+            ret += i->print(os);
+            if (&i != &elements.back()) {
+                os << ", ";
+                ret += 2;
+            }
+        }
+        os << "]";
+        ++ret;
+        return ret;
+    }
+
+    Object::smart_ref_t Array::call_object_specific_method(string name, args_ref_t args) {
+        return (this->*methods.self_methods[name])(args);
+    }
+
+    Array::self_ref_t Array::append_wrapper(Argument::ref_t args) {
+        return append(dynamic_cast<Array::elem_t>(args->get_arg(0)));
+    }
+
+    Array::self_ref_t Array::append(elem_t elem) {
+        elem->inc_refcount();
+        elements.push_back(elem);
+        return this;
+    }
 
 } // step
