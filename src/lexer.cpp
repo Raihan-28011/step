@@ -86,17 +86,10 @@ namespace step {
                     }
                     break;
                 case '-':
-                    // TODO: fix this negative number
-                    if (std::isdigit(peek_char()))
-                        num_token(c);
-                    else
-                        add_t(t_minus, "-");
+                    add_t(t_minus, "-");
                     break;
                 case '+':
-                    if (std::isdigit(peek_char()))
-                        num_token(c);
-                    else
-                        add_t(t_plus, "+");
+                    add_t(t_plus, "+");
                     break;
                 default:
                     if (std::isdigit(c)) num_token(c);

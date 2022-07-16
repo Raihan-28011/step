@@ -48,6 +48,7 @@ namespace step {
         bool inside_function = false;
         bool return_statement_evaluated = false;
         bool parsed_if = false;
+        Frame::ref_t returned_value = nullptr;
 
         Token const &next_token();
         Token const &peek_token(i32 peek=0);

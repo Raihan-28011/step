@@ -19,6 +19,7 @@ namespace step {
         using size_t = u64;
     public:
         Frame() = default;
+        Frame(Frame const &fm);
         ~Frame() {
             for (auto &i: _defined_functions_) {
                 i.second->dec_refcount();
@@ -42,9 +43,11 @@ namespace step {
         bool is_defined_variable(string const &name);
         void add_function(Frame::func_ref_t func);
         void add_variable(string const &name, ref_t obj);
+        void add_variable(string const &name, size_t index);
         void set_at(ref_t obj, size_t index);
         Frame::func_ref_t get_function(string const &name);
         size_t get_variable(string const &name);
+        void remove_variable(string const &name);
     private:
         vector<ref_t> eval_stack;
         umap<string, bool> _builtin_functions_ {
