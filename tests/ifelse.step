@@ -1,12 +1,17 @@
-if (false) {
-    print("Hello from if!\n");
-} else if (true) {
-    print("Hello from elif\n");
-} else {
-    print("Hello from else\n"); 
-}
+var = 68;
 
-print("Block after if else\n");
-
-def func() {
-}
+if (var >= 85)
+    print(var, "\n");
+#    print("Next Statement will cause an error\n");
+elif (var >= 75)
+    print(var, "\n");
+elif (var >= 65)
+    print(var, "\n");
+elif (var >= 55)
+    print(var, "\n");
+elif (var >= 45)
+    print(var, "\n");
+#    print("Next Statement will cause an error\n");
+else
+    print(var, "\n");
+print("Executed correctly\n");

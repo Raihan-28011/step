@@ -9,3 +9,6 @@ print(var, "\n");
 
 var = 10;
 print(var, "\n");
+
+var = var - 1;
+print(var, "\n");

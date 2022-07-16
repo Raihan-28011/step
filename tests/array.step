@@ -1,0 +1,1 @@
+print([1, 2, "string", print("Printing my array: ")] + 10);
