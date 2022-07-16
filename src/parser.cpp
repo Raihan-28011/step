@@ -113,6 +113,8 @@ namespace step {
         std::cout << " ';')\n";
     }
 
+
+
     void Parser::print(FunctionDefStatement *stmt) {
         std::cout << "( 'def' " << stmt->get_name().get_tok()
                   << " '(' ";
@@ -573,15 +575,13 @@ namespace step {
         auto r = cur_frame->pop(), l = cur_frame->pop();
         r->inc_refcount();
         l->inc_refcount();
-        Argument::ref_t args = new Argument({r});
-
         if (l->get_type() != r->get_type()) {
             delete l;
             delete r;
-            delete args;
             errorManager->runtime_error("invalid binary operation", *cur_frame);
         }
 
+        Argument::ref_t args = new Argument({r});
         switch (op) {
             case t_plus:
                 cur_frame->push(l->call_object_specific_method("add", args));
@@ -645,10 +645,64 @@ namespace step {
                 __builtin_print_function(params.size());
             }
         } else if (cur_frame->is_user_defined(name)) {
-            auto func = cur_frame->get_function(name);
+            auto const &func = cur_frame->get_function(name);
+            call_stack.push(std::make_shared<Frame>(*cur_frame));
+            cur_frame = call_stack.top();
+            auto const &params = expr->get_args();
+            auto const &logic = func->get_logic();
+            auto const &args = logic->get_params();
+            if (params.size() != args.size()) {
+                errorManager->compilation_error("call to function '" + name + "' "
+                        "missing " + std::to_string(args.size()) + 
+                        " argument(s)", expr->get_name().get_line(),
+                        expr->get_name().get_col());
+            }
+            
+            for (auto const &i: params) {
+                i->accept_evaluator(this);
+            }
             evaluate(func->get_logic());
             func->dec_refcount();
-        }
+            auto top = cur_frame->top();
+            call_stack.pop();
+            cur_frame.reset();
+            cur_frame = call_stack.top();
+            cur_frame->push(top);
+        } else if (cur_frame->is_defined_variable(name)) {
+            auto var = cur_frame->at(cur_frame->get_variable(name));
+            if (!dynamic_cast<Variable*>(var)->is_function()) {
+                errorManager->compilation_error("'" + name + "' is not a function", 
+                        expr->get_name().get_line(), expr->get_name().get_col());
+            }
+
+            auto func = dynamic_cast<Function*>(dynamic_cast<Variable*>(var)->get_value());
+            call_stack.push(std::make_shared<Frame>(*cur_frame));
+            cur_frame = call_stack.top();
+            auto const &params = expr->get_args();
+            auto const &logic = func->get_logic();
+            auto const &args = logic->get_params();
+            if (params.size() != args.size()) {
+                errorManager->compilation_error("call to function '" + name + 
+                        "[" + logic->get_name().get_tok() + "]' "
+                        "missing " + std::to_string(args.size()) + " argument(s)", 
+                        expr->get_name().get_line(),
+                        expr->get_name().get_col());
+            }
+            
+            for (auto const &i: params) {
+                i->accept_evaluator(this);
+            }
+            evaluate(func->get_logic());
+            func->dec_refcount();
+            auto top = cur_frame->top();
+            call_stack.pop();
+            cur_frame.reset();
+            cur_frame = call_stack.top();
+            cur_frame->push(top); 
+            var->dec_refcount();
+        } else {
+            errorManager->compilation_error("undefined function '" + name + "'", expr->get_name().get_line(), expr->get_name().get_col());
+        } 
     }
 
     ExpressionNodePtr Parser::parse_identifier() {
@@ -661,6 +715,21 @@ namespace step {
         auto &params = stms->get_params();
         auto &body = stms->get_body();
 
+        stack<Frame::ref_t> objs;
+        for (i64 i = 0; i < params.size(); ++i) {
+            auto top = cur_frame->pop();
+            objs.push(top);
+        }
+        i64 i = 0;
+        for (auto const &param: params) {
+            auto obj = objs.top();
+            auto var = new Variable(obj);
+            objs.pop();
+            cur_frame->add_variable(std::dynamic_pointer_cast<IdentifierExpression>(param)->get_ident().get_tok(),
+                    var);
+            ++i;
+        } 
+
         for (auto &stmt: body) {
             stmt->accept_evaluator(this);
             if (return_statement_evaluated) {
@@ -669,8 +738,20 @@ namespace step {
             }
         }
 
-        if (!stms->has_return_statement())
+        for (i64 i = 0; i < params.size(); ++i) {
+            cur_frame->remove_variable(std::dynamic_pointer_cast<IdentifierExpression>(params[i])->get_ident().get_tok());   
+            auto val = cur_frame->pop();
+            if (val->get_refcount() == 0)
+                delete val;
+
+        }
+
+        if (returned_value) {
+            cur_frame->push(returned_value);
+            returned_value = nullptr;
+        } else {
             cur_frame->push(new Integer(std::to_string(0)));
+        }
     }
 
     void Parser::evaluate(ExpressionStatement *stms) {
@@ -711,7 +792,7 @@ namespace step {
             errorManager->compilation_error("'return' statement outside function", tok.get_line(), tok.get_col());
         }
 
-        ExpressionNodePtr expr;
+        ExpressionNodePtr expr = nullptr;
         if (!is_next(t_semicolon)) {
             expr = parse_expression();
         }
@@ -725,7 +806,11 @@ namespace step {
     }
 
     void Parser::evaluate(ReturnStatement *stms) {
-        stms->get_Expr()->accept_evaluator(this);
+        if (stms->get_Expr()) {
+            stms->get_Expr()->accept_evaluator(this);
+            returned_value = cur_frame->pop();
+            returned_value->inc_refcount();
+        }
         return_statement_evaluated = true;
     }
 
@@ -771,7 +856,8 @@ namespace step {
         if (is_next(t_else)) {
             elifs.push_back(parse_statement());
         }
-
+        
+        parsed_if = false;
         return std::make_shared<IfStatement>(condition, std::move(body), std::move(elifs));
     }
 
@@ -806,9 +892,8 @@ namespace step {
         eat_if(t_elif);
         Token tok = tokens.at(cur_token);
         if (!parsed_if) {
-            parsed_if = false;
             tok = tokens.at(cur_token);
-            errorManager->compilation_error("else has no if block", tok.get_line(), tok.get_col());
+            errorManager->compilation_error("elif has no if block", tok.get_line(), tok.get_col());
         }
 
         if (!eat_if(t_lparen)) {
@@ -841,7 +926,7 @@ namespace step {
             body.push_back(parse_statement());
         }
 
-        if (!is_next(t_elif) || !is_next(t_else))
+        if (!is_next(t_elif) && !is_next(t_else))
             parsed_if = false;
 
         return std::make_shared<ElifStatement>(condition, std::move(body));
@@ -913,10 +998,9 @@ namespace step {
             // TODO: implement assigning builtin functions
         } else if (cur_frame->is_user_defined(name.get_tok())) {
             auto val = cur_frame->get_function(name.get_tok());
-            val->inc_refcount();
             cur_frame->push(val);
         } else {
-            errorManager->compilation_error("undefiend variable '" + name.get_tok() + "'", name.get_line(), name.get_col());
+            errorManager->compilation_error("Undefined variable '" + name.get_tok() + "'", name.get_line(), name.get_col());
         }
     }
 

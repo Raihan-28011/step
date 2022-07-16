@@ -6,6 +6,23 @@
 #include "error.h"
 
 namespace step {
+
+    Frame::Frame(Frame const &fm) {
+        for (auto const &i: fm.eval_stack) {
+            i->inc_refcount();
+            eval_stack.push_back(i);
+        }
+
+        for (auto const &i: fm._defined_functions_) {
+            i.second->inc_refcount();
+            _defined_functions_.insert(i);
+        }
+
+        for (auto const &i: fm._defined_variables_) {
+            _defined_variables_.insert(i);
+        }
+    }
+
     void Frame::push(Frame::ref_t obj) {
         eval_stack.push_back(obj);
     }
@@ -65,12 +82,20 @@ namespace step {
         return _defined_functions_.find(name) != _defined_functions_.end();
     }
     
-    void Frame::add_variable(const string &name, ref_t obj) {
+    void Frame::add_variable(string const &name, ref_t obj) {
         eval_stack.push_back(obj);
         _defined_variables_[name] = eval_stack.size()-1;
+    }
+
+    void Frame::add_variable(string const &name, size_t index) {
+        _defined_variables_[name] = eval_stack.size()-index;
     }
     
     void Frame::set_at(ref_t obj, size_t index) {
         eval_stack.at(index) = obj;
+    }
+
+    void Frame::remove_variable(string const &name) {
+        _defined_variables_.erase(name);
     }
 } // step
