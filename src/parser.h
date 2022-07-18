@@ -51,6 +51,8 @@ namespace step {
         bool inside_function = false;
         bool return_statement_evaluated = false;
         bool parsed_if = false;
+        string called_function = "";
+        bool builtin_called = false;
         Frame::ref_t returned_value = nullptr;
 
         Token const &next_token();
@@ -71,7 +73,7 @@ namespace step {
         ExpressionNodePtr parse_unary();
         ExpressionNodePtr parse_primary();
         ExpressionNodePtr parse_identifier();
-        ExpressionNodePtr parse_function_call(Token const &name);
+        ExpressionNodePtr parse_function_call();
         ExpressionNodePtr parse_group_expression(Token const &tok);
         ExpressionNodePtr parse_subscript_operator();
         ExpressionNodePtr parse_array_expression();
@@ -107,6 +109,7 @@ namespace step {
         void evaluate(ChainedExpression *expr) override;
 
         void __builtin_print_function(i64 args);
+        void evaluate_builtin_functions(i64 args);
     };
 
 } // step

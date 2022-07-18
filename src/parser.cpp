@@ -301,8 +301,8 @@ namespace step {
             auto tok = tokens.at(cur_token);
             ExpressionNodePtr exp = nullptr;
             switch (tok.get_kind()) {
-                case t_lbrace:
-                     exp = parse_function_call(Token{});
+                case t_lparen:
+                     exp = parse_function_call();
                      break;
                 case t_lsqbrace:
                      exp = parse_subscript_operator();
@@ -518,7 +518,7 @@ namespace step {
         return std::make_shared<AssignmentStatement>(lhs, rhs);
     } 
 
-    ExpressionNodePtr Parser::parse_function_call(Token const &name) {
+    ExpressionNodePtr Parser::parse_function_call() {
         vector<ExpressionNodePtr> args;
         while (!is_next(t_rparen)) {
             args.push_back(parse_expression());
@@ -530,7 +530,7 @@ namespace step {
             errorManager->compilation_error("expected ')'", tok.get_line(), tok.get_col());
         }
 
-        return std::make_shared<FunctionCallExpression>(name, std::move(args)) ;
+        return std::make_shared<FunctionCallExpression>(std::move(args)) ;
     }
 
     ExpressionNodePtr Parser::parse_group_expression(Token const &tok) {
@@ -714,74 +714,53 @@ namespace step {
         }
     }
 
-    void Parser::evaluate(FunctionCallExpression *expr) {
-        auto const &name = expr->get_name().get_tok();
-        if (cur_frame->is_defined_builtin(name)) {
-            if (name == "print") {
-                auto &params = expr->get_args();
-                for (auto &param: params)
-                    param->accept_evaluator(this);
-                __builtin_print_function(params.size());
-            }
-        } else if (cur_frame->is_user_defined(name)) {
-            auto const &func = cur_frame->get_function(name);
-            call_stack.push(std::make_shared<Frame>(*cur_frame));
-            cur_frame = call_stack.top();
-            auto const &params = expr->get_args();
-            auto const &logic = func->get_logic();
-            auto const &args = logic->get_params();
-            if (params.size() != args.size()) {
-                errorManager->compilation_error("call to function '" + name + "' "
-                        "missing " + std::to_string(args.size()) + 
-                        " argument(s)", expr->get_name().get_line(),
-                        expr->get_name().get_col());
-            }
-            
-            for (auto const &i: params) {
-                i->accept_evaluator(this);
-            }
-            evaluate(func->get_logic());
-            func->dec_refcount();
-            auto top = cur_frame->top();
-            call_stack.pop();
-            cur_frame.reset();
-            cur_frame = call_stack.top();
-            cur_frame->push(top);
-        } else if (cur_frame->is_defined_variable(name)) {
-            auto var = cur_frame->at(cur_frame->get_variable(name));
-            if (!dynamic_cast<Variable*>(var)->is_function()) {
-                errorManager->compilation_error("'" + name + "' is not a function", 
-                        expr->get_name().get_line(), expr->get_name().get_col());
-            }
+    void Parser::evaluate(FunctionCallExpression *expr) { 
+        if (builtin_called) {
+            builtin_called = false;
+            auto &params = expr->get_args();
+            for (auto &param: params)
+                param->accept_evaluator(this);
+            evaluate_builtin_functions(params.size());
+            return;
+        }
 
-            auto func = dynamic_cast<Function*>(dynamic_cast<Variable*>(var)->get_value());
-            call_stack.push(std::make_shared<Frame>(*cur_frame));
-            cur_frame = call_stack.top();
-            auto const &params = expr->get_args();
-            auto const &logic = func->get_logic();
-            auto const &args = logic->get_params();
-            if (params.size() != args.size()) {
-                errorManager->compilation_error("call to function '" + name + 
-                        "[" + logic->get_name().get_tok() + "]' "
-                        "missing " + std::to_string(args.size()) + " argument(s)", 
-                        expr->get_name().get_line(),
-                        expr->get_name().get_col());
-            }
-            
-            for (auto const &i: params) {
-                i->accept_evaluator(this);
-            }
-            evaluate(func->get_logic());
-            func->dec_refcount();
-            auto top = cur_frame->top();
-            call_stack.pop();
-            cur_frame.reset();
-            cur_frame = call_stack.top();
-            cur_frame->push(top); 
-            var->dec_refcount();
-        } else {
-            errorManager->compilation_error("undefined function '" + name + "'", expr->get_name().get_line(), expr->get_name().get_col());
-        } 
+        auto const &top = cur_frame->pop();
+        top->inc_refcount();
+        call_stack.push(std::make_shared<Frame>(*cur_frame));
+        cur_frame = call_stack.top();
+        auto const &params = expr->get_args();
+
+        if (!top->is_function()) {
+            delete top;
+            errorManager->runtime_error("undefined function", *cur_frame);
+        }
+
+        auto const &logic = dynamic_cast<Function*>(top)->get_logic();
+        auto const &args = logic->get_params();
+        if (params.size() != args.size()) {
+            delete top;
+            errorManager->runtime_error("missing " 
+                    + std::to_string(args.size()) + 
+                    " argument(s)",
+                    *cur_frame);
+        }
+        
+        for (auto const &i: params) {
+            i->accept_evaluator(this);
+        }
+        evaluate(logic);
+        auto ret = cur_frame->top();
+        call_stack.pop();
+        cur_frame.reset();
+        cur_frame = call_stack.top();
+        cur_frame->push(ret);
+        top->dec_refcount();
+    }
+
+    void Parser::evaluate_builtin_functions(i64 args) {
+        if (called_function == "print") {
+            __builtin_print_function(args); 
+        }
     }
 
     ExpressionNodePtr Parser::parse_identifier() {
@@ -1075,6 +1054,8 @@ namespace step {
             val->dec_refcount();
         } else if (cur_frame->is_defined_builtin(name.get_tok())) {
             // TODO: implement assigning builtin functions
+            builtin_called = true;
+            called_function = name.get_tok();
         } else if (cur_frame->is_user_defined(name.get_tok())) {
             auto val = cur_frame->get_function(name.get_tok());
             cur_frame->push(val);
@@ -1148,12 +1129,15 @@ namespace step {
         cur_frame->push(dynamic_cast<Array*>(top)->call_object_specific_method("at", arg));
         delete arg;
         top->dec_refcount();
+        if (top->get_refcount() == 0)
+            delete top;
     }
 
     void Parser::evaluate(ChainedExpression *expr) {
         auto exprs = expr->get_expressions();
-        for (auto &i: exprs)
+        for (auto &i: exprs) {
             i->accept_evaluator(this);
+        }
     }
 
 } // step

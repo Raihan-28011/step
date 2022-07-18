@@ -81,7 +81,7 @@ namespace step {
 
     struct FunctionCallExpression : public ExpressionNode {
     public:
-        FunctionCallExpression(Token const &n, vector<ExpressionNodePtr> &&args);
+        FunctionCallExpression(vector<ExpressionNodePtr> &&args);
 
         Token const &get_name() { return name; }
         vector<ExpressionNodePtr> const &get_args() { return arguments; }

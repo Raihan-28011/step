@@ -70,8 +70,8 @@ namespace step {
         acceptor->evaluate(this);
     }
 
-    FunctionCallExpression::FunctionCallExpression(Token const &n, vector<ExpressionNodePtr> &&args)
-        : name{n}, arguments{std::move(args)}
+    FunctionCallExpression::FunctionCallExpression(vector<ExpressionNodePtr> &&args)
+        : arguments{std::move(args)}
     {
     }
 
