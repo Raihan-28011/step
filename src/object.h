@@ -49,6 +49,9 @@ namespace step {
         ObjectDataType get_type() const { return type; }
         virtual Object::size_t print(std::ostream &os) const = 0;
         virtual smart_ref_t call_object_specific_method(string name, args_ref_t args) = 0;
+
+        virtual bool is_function() { return get_type() == dt_function; }
+        virtual bool is_array() { return get_type() == dt_array; }
     protected:
         ObjectDataType type;
         ref_t _this{this};
@@ -213,6 +216,7 @@ namespace step {
         Integer const &from_hex_to_dec() const;
         Integer const &from_oct_to_dec() const;
         Integer const &from_bin_to_dec() const;
+        num_t get_num() const { return _num; };
 
         bool operator==(Integer const &b) const;
         bool operator!=(Integer const &b) const;
@@ -280,9 +284,8 @@ namespace step {
         void set_new_value(value_t val);
         Object::size_t print(std::ostream &os) const override;
         Object::smart_ref_t call_object_specific_method(string name, args_ref_t args) override;
-
-        bool is_function() { return value->get_type() == dt_function; }
-        bool is_array() { return value->get_type() == dt_array; }
+        bool is_function() override { return value->is_function(); }
+        bool is_array() override { return value->is_array(); }
     private:
         value_t value;
         /*bool is_const = false;  */
@@ -291,14 +294,17 @@ namespace step {
 
     struct Array;
     struct ArrayMethods {
-        using self_ref_func_t = Array *(Array::*)(Argument::ref_t);
+        using self_ref_func_t = Object *(Array::*)(Argument::ref_t);
 
         umap<string, self_ref_func_t> self_methods;
     };
 
     struct Array : public Object {
         using elem_t = Object *;
+        using ref_t = Object *;
         using self_ref_t = Array *;
+        using index_t = Integer *;
+        using size_t = u64;
     public:
         Array();
         ~Array() override {
@@ -311,8 +317,11 @@ namespace step {
 
         Object::size_t print(std::ostream &os) const override;
         Object::smart_ref_t call_object_specific_method(string name, args_ref_t args) override;
-        Array::self_ref_t append_wrapper(Argument::ref_t args); 
+        Array::ref_t append_wrapper(Argument::ref_t args); 
         Array::self_ref_t append(elem_t elem); 
+        Array::ref_t at_wrapper(Argument::ref_t args); 
+        Array::ref_t at(index_t index); 
+        size_t get_size() { return elements.size(); }
     private:
         vector<elem_t> elements;
         ArrayMethods methods;

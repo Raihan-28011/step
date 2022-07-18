@@ -634,7 +634,8 @@ namespace step {
     {
         methods = {
             .self_methods = {
-                {"append", &Array::append_wrapper}
+                {"append", &Array::append_wrapper},
+                {"at", &Array::at_wrapper},
             }
         };
     }
@@ -662,7 +663,7 @@ namespace step {
         return (this->*methods.self_methods[name])(args);
     }
 
-    Array::self_ref_t Array::append_wrapper(Argument::ref_t args) {
+    Array::ref_t Array::append_wrapper(Argument::ref_t args) {
         return append(dynamic_cast<Array::elem_t>(args->get_arg(0)));
     }
 
@@ -670,6 +671,16 @@ namespace step {
         elem->inc_refcount();
         elements.push_back(elem);
         return this;
+    }
+
+    Array::ref_t Array::at_wrapper(Argument::ref_t args) {
+        return at(dynamic_cast<Array::index_t>(args->get_arg(0)));
+    }
+
+    Array::ref_t Array::at(index_t index) {
+        auto &ref = elements.at(index->get_num());
+        ref->inc_refcount();
+        return ref;
     }
 
 } // step

@@ -17,6 +17,8 @@ namespace step {
     struct IdentifierExpression;
     struct FunctionCallExpression;
     struct ArrayExpression;
+    struct SubscriptExpression;
+    struct ChainedExpression;
     using ExpressionNodePtr = std::shared_ptr<ExpressionNode>;
 
     struct StatementNode;
@@ -36,6 +38,8 @@ namespace step {
         virtual void print(IdentifierExpression *nexpr) = 0;
         virtual void print(FunctionCallExpression *nexpr) = 0;
         virtual void print(ArrayExpression *nexpr) = 0;
+        virtual void print(SubscriptExpression *nexpr) = 0;
+        virtual void print(ChainedExpression *nexpr) = 0;
     };
 
     struct ExpressionEvaluatorVisitor {
@@ -44,6 +48,8 @@ namespace step {
         virtual void evaluate(IdentifierExpression *expr) = 0;
         virtual void evaluate(FunctionCallExpression *expr) = 0;
         virtual void evaluate(ArrayExpression *expr) = 0;
+        virtual void evaluate(SubscriptExpression *expr) = 0;
+        virtual void evaluate(ChainedExpression *expr) = 0;
     };
 
     struct ExpressionNode {
@@ -111,6 +117,28 @@ namespace step {
         void accept(ExpressionVisitor *acceptor) override;
     private:
         vector<ExpressionNodePtr> elements;
+    };
+
+    struct SubscriptExpression : public ExpressionNode {
+    public:
+        SubscriptExpression(ExpressionNodePtr expr);
+
+        ExpressionNodePtr const &get_expression() { return expr; }
+        void accept_evaluator(ExpressionEvaluatorVisitor *acceptor) override;
+        void accept(ExpressionVisitor *acceptor) override;
+    private:
+        ExpressionNodePtr expr;
+    };    
+
+    struct ChainedExpression : public ExpressionNode {
+    public:
+        explicit ChainedExpression(vector<ExpressionNodePtr> &&exps);
+
+        vector<ExpressionNodePtr> const &get_expressions() { return exprs; }
+        void accept_evaluator(ExpressionEvaluatorVisitor *acceptor) override;
+        void accept(ExpressionVisitor *acceptor) override;
+    private:
+        vector<ExpressionNodePtr> exprs;
     };
 
     struct StatementVisitor {

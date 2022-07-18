@@ -104,6 +104,16 @@ namespace step {
         std::cout << " ']";
     }
 
+    void Parser::print(SubscriptExpression *expr) {
+        std::cout << "[ ";
+        expr->get_expression()->accept(this);
+        std::cout << " ]";
+    }
+
+    void Parser::print(ChainedExpression *expr) {
+        for (auto &i: expr->get_expressions())
+            i->accept(this);
+    }
 
     void Parser::print(PrintStatement *stmt) {
         std::cout << "('print' ";
@@ -269,7 +279,7 @@ namespace step {
     }
 
     ExpressionNodePtr Parser::parse_factor(i32 precedence) {
-        auto left = parse_primary(precedence);
+        auto left = parse_unary();
         ExpressionNodePtr right = nullptr;
         while (precedence < binary_precedence(t_star) && eat_if({t_star, t_slash, t_modulus, t_starstar})) {
             auto tok = tokens.at(cur_token);
@@ -284,8 +294,35 @@ namespace step {
         return left;
     }
 
-    ExpressionNodePtr Parser::parse_primary(i32 precedence) {
-        if (eat_if({t_num, t_string, t_true, t_false, 
+    ExpressionNodePtr Parser::parse_unary() {
+        vector<ExpressionNodePtr> exprs;
+        exprs.push_back(parse_primary());
+        while (eat_if({t_lparen, t_lsqbrace, t_dot})) {
+            auto tok = tokens.at(cur_token);
+            ExpressionNodePtr exp = nullptr;
+            switch (tok.get_kind()) {
+                case t_lbrace:
+                     exp = parse_function_call(Token{});
+                     break;
+                case t_lsqbrace:
+                     exp = parse_subscript_operator();
+                     break;
+                case t_dot:
+                    break;
+                default:
+                    break;
+            }
+
+            exprs.push_back(exp);
+        }
+
+        if (exprs.size() == 1)
+            return exprs.front();
+        return std::make_shared<ChainedExpression>(std::move(exprs));
+    }
+
+    ExpressionNodePtr Parser::parse_primary() {
+        if (eat_if({t_num, t_string, t_true, t_false,
                     t_ident, t_null, t_lparen, t_lsqbrace})) {
             auto tok = tokens.at(cur_token);
             switch (tok.get_kind()) {
@@ -296,29 +333,11 @@ namespace step {
                 case t_null:
                     return std::make_shared<ConstantExpression>(tok);
                 case t_ident:
-                {
-                    if (is_next(t_lparen)) return parse_function_call(tok);
-                    else return std::make_shared<IdentifierExpression>(tok);
-                }
+                    return std::make_shared<IdentifierExpression>(tok);
                 case t_lparen:
-                {
-                    auto expr = parse_expression();
-                    if (!eat_if(t_rparen)) {
-                        errorManager->compilation_error("'(' has no closing paren ')'", tok.get_line(), tok.get_col());
-                    }
-                    return expr;
-                }
+                    return parse_group_expression(tok);
                 case t_lsqbrace:
-                {
-                    auto expr = parse_array_expression();
-                    if (!eat_if(t_rsqbrace)) {
-                        tok = next_token();
-                        errorManager->compilation_error("expected ']'", tok.get_line(), tok.get_col());
-                    }
-
-                    return expr;
-                }
-                    break;
+                    return parse_array_expression();
                 default:
                     break;
             }
@@ -344,6 +363,8 @@ namespace step {
                     tok.get_col());
         }
 
+
+        eat_if(t_rsqbrace);
         return std::make_shared<ArrayExpression>(std::move(elems));
     }
 
@@ -498,19 +519,10 @@ namespace step {
     } 
 
     ExpressionNodePtr Parser::parse_function_call(Token const &name) {
-        if (!eat_if(t_lparen)) {
-            errorManager->compilation_error("expected '('", name.get_line(), name.get_col());
-        }
-
         vector<ExpressionNodePtr> args;
         while (!is_next(t_rparen)) {
             args.push_back(parse_expression());
-            if (eat_if(t_comma)) {
-                if (is_next_n(t_rparen, 0)) {
-                    auto tok = tokens.at(cur_token);
-                    errorManager->compilation_error("expected expression or ')'", tok.get_line(), tok.get_col());
-                }
-            }
+            eat_if(t_comma);
         }
 
         if (!eat_if(t_rparen)) {
@@ -519,6 +531,31 @@ namespace step {
         }
 
         return std::make_shared<FunctionCallExpression>(name, std::move(args)) ;
+    }
+
+    ExpressionNodePtr Parser::parse_group_expression(Token const &tok) {
+        auto expr = parse_expression();
+        if (!eat_if(t_rparen)) {
+            errorManager->compilation_error("'(' has no closing paren ')'", tok.get_line(), tok.get_col());
+        }
+        return expr;
+    }
+
+    ExpressionNodePtr Parser::parse_subscript_operator() {
+        if (is_next(t_rsqbrace)) {
+            auto tok = next_token();
+            errorManager->compilation_error("expected expression", 
+                    tok.get_line(), 
+                    tok.get_col());
+        }
+        auto expr = parse_expression();
+
+       if (!eat_if(t_rsqbrace)) {
+            auto tok = next_token();
+            errorManager->compilation_error("expected ']'", tok.get_line(), tok.get_col());
+       } 
+
+       return std::make_shared<SubscriptExpression>(expr);
     }
 
     StatementNodePtr Parser::parse_function_def_statement() {
@@ -1081,6 +1118,42 @@ namespace step {
             delete args;
         }
         cur_frame->push(arr);
+    }
+
+    void Parser::evaluate(SubscriptExpression *expr) {
+        auto exp = expr->get_expression();
+        auto top = cur_frame->pop();
+        top->inc_refcount();
+        
+        exp->accept_evaluator(this);
+        auto index = cur_frame->pop();
+
+        if (index->get_type() != dt_int) {
+            delete index;
+            delete top;
+            errorManager->runtime_error("array indices must be integers", *cur_frame);
+        }
+
+        if (!top->is_array()) {
+            delete top;
+            errorManager->runtime_error("invalid subscript operand", *cur_frame);
+        }
+
+        if (dynamic_cast<Integer*>(index)->get_num() >= dynamic_cast<Array*>(top)->get_size()) {
+            delete top;
+            delete index;
+            errorManager->runtime_error("array index out of bounds", *cur_frame);
+        }
+        Argument *arg = new Argument({index});
+        cur_frame->push(dynamic_cast<Array*>(top)->call_object_specific_method("at", arg));
+        delete arg;
+        top->dec_refcount();
+    }
+
+    void Parser::evaluate(ChainedExpression *expr) {
+        auto exprs = expr->get_expressions();
+        for (auto &i: exprs)
+            i->accept_evaluator(this);
     }
 
 } // step

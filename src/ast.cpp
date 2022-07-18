@@ -174,4 +174,30 @@ namespace step {
     void ArrayExpression::accept_evaluator(ExpressionEvaluatorVisitor *acceptor) {
         acceptor->evaluate(this);
     }
+
+    SubscriptExpression::SubscriptExpression(ExpressionNodePtr exp)
+        : expr{exp}
+    {
+    }
+
+    void SubscriptExpression::accept(ExpressionVisitor *acceptor) {
+        acceptor->print(this);
+    }
+
+    void SubscriptExpression::accept_evaluator(ExpressionEvaluatorVisitor *acceptor) {
+        acceptor->evaluate(this);
+    }
+
+    ChainedExpression::ChainedExpression(vector<ExpressionNodePtr> &&exps)
+        : exprs{std::move(exps)}
+    {
+    }
+
+    void ChainedExpression::accept(ExpressionVisitor *acceptor) {
+        acceptor->print(this);
+    }
+
+    void ChainedExpression::accept_evaluator(ExpressionEvaluatorVisitor *acceptor) {
+        acceptor->evaluate(this);
+    }
 } // step
