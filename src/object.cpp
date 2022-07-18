@@ -643,7 +643,11 @@ namespace step {
         Object::size_t ret = 1;
         os << "[";
         for (auto &i: elements) {
+            if (i->get_type() == dt_string)
+                os << '\'';
             ret += i->print(os);
+            if (i->get_type() == dt_string)
+                os << '\'';
             if (&i != &elements.back()) {
                 os << ", ";
                 ret += 2;
