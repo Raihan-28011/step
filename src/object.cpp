@@ -636,6 +636,7 @@ namespace step {
             .self_methods = {
                 {"append", &Array::append_wrapper},
                 {"at", &Array::at_wrapper},
+                {"set", &Array::set_wrapper},
             }
         };
     }
@@ -681,6 +682,22 @@ namespace step {
         auto &ref = elements.at(index->get_num());
         ref->inc_refcount();
         return ref;
+    }
+
+    Array::ref_t Array::set_wrapper(Argument::ref_t args) {
+        return set(dynamic_cast<Array::index_t>(args->get_arg(0)), 
+                   args->get_arg(1));
+    }
+
+    Array::ref_t Array::set(index_t index, elem_t elem) {
+        auto prev_elem = elements.at(index->get_num());
+        prev_elem->dec_refcount();
+        if (prev_elem->get_refcount() == 0)
+            delete prev_elem;
+        elements.at(index->get_num()) = elem;
+        elem->inc_refcount();
+        this->inc_refcount();
+        return this;
     }
 
 } // step

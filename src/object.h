@@ -321,6 +321,8 @@ namespace step {
         Array::self_ref_t append(elem_t elem); 
         Array::ref_t at_wrapper(Argument::ref_t args); 
         Array::ref_t at(index_t index); 
+        Array::ref_t set_wrapper(Argument::ref_t args); 
+        Array::ref_t set(index_t index, elem_t elem); 
         size_t get_size() { return elements.size(); }
     private:
         vector<elem_t> elements;

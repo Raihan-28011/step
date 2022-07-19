@@ -53,6 +53,9 @@ namespace step {
         bool parsed_if = false;
         string called_function = "";
         bool builtin_called = false;
+        bool parsing_assignment = false;
+        bool evaluating_assignment = false;
+        bool push_ref = false;
         Frame::ref_t returned_value = nullptr;
 
         Token const &next_token();
@@ -77,6 +80,7 @@ namespace step {
         ExpressionNodePtr parse_group_expression(Token const &tok);
         ExpressionNodePtr parse_subscript_operator();
         ExpressionNodePtr parse_array_expression();
+        ExpressionNodePtr parse_chained_expression();
         i32 binary_precedence(TokenKind op);
         i32 unary_precedence(TokenKind op);
 

@@ -44,7 +44,7 @@ namespace step {
         acceptor->evaluate(this);
     }
 
-    AssignmentStatement::AssignmentStatement(std::shared_ptr<IdentifierExpression> lhs, ExpressionNodePtr rhs)
+    AssignmentStatement::AssignmentStatement(ExpressionNodePtr lhs, ExpressionNodePtr rhs)
         : left{lhs}, right{rhs}
     {
     }

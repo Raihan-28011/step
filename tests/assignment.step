@@ -1,0 +1,8 @@
+def func() {
+    return "success";
+}
+
+var = [10, [10, [func]]];
+print(var[1][1][0](), "\n");
+var[1][1][0] = "raihan kabir";
+print(var, "\n");

@@ -12,3 +12,4 @@ array = [1, 2, "raihan kabir", [10, 20], func];
 # array[0] = 10; # currently gives error
 array[1];
 print(array, "\n", array[3][0], "\n", array[4](), "\n", ((func2())[2])(), "\n");
+print([32983, 3928, 439984][2], "\n");

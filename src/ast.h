@@ -194,15 +194,15 @@ namespace step {
 
     struct AssignmentStatement : public StatementNode {
     public:
-        AssignmentStatement(std::shared_ptr<IdentifierExpression> lhs, ExpressionNodePtr rhs);
+        AssignmentStatement(ExpressionNodePtr lhs, ExpressionNodePtr rhs);
 
-        std::shared_ptr<IdentifierExpression> const &get_left() { return left; }
+        ExpressionNodePtr const &get_left() { return left; }
         ExpressionNodePtr const &get_right() { return right; }
         void accept(StatementVisitor *acceptor) override;
         void accept_evaluator(StatementEvaluatorVisitor *acceptor) override;
         StatementKind get_type() override { return s_assign; }
     private:
-        std::shared_ptr<IdentifierExpression> left;
+        ExpressionNodePtr left;
         ExpressionNodePtr right;
     };
 

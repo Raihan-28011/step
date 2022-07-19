@@ -482,15 +482,12 @@ namespace step {
         bool is_assignment = false;
         i32 peek_ahead = 0;
         // TODO: parse 'ident.ident() = expression;'
-        while (is_next_n(t_ident, peek_ahead) && !is_next_n(t_eof, peek_ahead)) {
+        //
+        while (!is_next_n(t_semicolon, peek_ahead) && !is_next_n(t_eof, peek_ahead)) {
             ++peek_ahead;
             if (is_next_n(t_equal, peek_ahead)) {
                 is_assignment = true;
                 break;
-            }
-
-            if (is_next_n(t_dot, peek_ahead)) {
-                ++peek_ahead;
             }
         }
 
@@ -504,8 +501,9 @@ namespace step {
         }
 
         // TODO: parse 'ident.ident.ident = expression;'
-        eat_if(t_ident);
-        auto lhs = std::make_shared<IdentifierExpression>(tokens.at(cur_token));
+        parsing_assignment = true;
+        auto lhs = parse_chained_expression();
+        parsing_assignment = false;
 
         eat_if(t_equal);
         auto rhs = parse_expression();
@@ -517,6 +515,30 @@ namespace step {
 
         return std::make_shared<AssignmentStatement>(lhs, rhs);
     } 
+
+    ExpressionNodePtr Parser::parse_chained_expression() {        
+        vector<ExpressionNodePtr> exprs;
+        exprs.push_back(parse_primary());
+        while (eat_if({t_lsqbrace, t_dot})) {
+            auto tok = tokens.at(cur_token);
+            ExpressionNodePtr exp = nullptr;
+            switch (tok.get_kind()) {
+                case t_lsqbrace:
+                     exp = parse_subscript_operator();
+                     break;
+                case t_dot:
+                    break;
+                default:
+                    errorManager->runtime_error("function calls do not support assignment operation", 
+                            *cur_frame);
+                    break;
+            }
+
+            exprs.push_back(exp);
+        }
+
+        return std::make_shared<ChainedExpression>(std::move(exprs));
+    }
 
     ExpressionNodePtr Parser::parse_function_call() {
         vector<ExpressionNodePtr> args;
@@ -1050,17 +1072,43 @@ namespace step {
         auto const &name = expr->get_ident();
         if (cur_frame->is_defined_variable(name.get_tok())) {
             auto val = cur_frame->at(cur_frame->get_variable(name.get_tok()));
-            cur_frame->push(dynamic_cast<Variable*>(val)->get_value());
-            val->dec_refcount();
+            if (push_ref) {
+                auto t = cur_frame->top();
+                dynamic_cast<Variable*>(val)->set_new_value(t);
+                t->dec_refcount();
+                val->dec_refcount();
+            } else if (evaluating_assignment) {
+                cur_frame->push(val);
+            } else {
+                cur_frame->push(dynamic_cast<Variable*>(val)->get_value());
+                val->dec_refcount();
+            }
         } else if (cur_frame->is_defined_builtin(name.get_tok())) {
+            if (push_ref) {
+                errorManager->runtime_error("assignment to function call is invalid", *cur_frame);
+            }
             // TODO: implement assigning builtin functions
             builtin_called = true;
             called_function = name.get_tok();
         } else if (cur_frame->is_user_defined(name.get_tok())) {
+            if (push_ref) {
+                errorManager->runtime_error("assignment to function call is invalid", *cur_frame);
+            }
             auto val = cur_frame->get_function(name.get_tok());
             cur_frame->push(val);
         } else {
-            errorManager->compilation_error("Undefined variable '" + name.get_tok() + "'", name.get_line(), name.get_col());
+            if (push_ref) {
+                auto val = cur_frame->pop();
+                auto var = new Variable(val);
+                cur_frame->add_variable(name.get_tok(), var);
+                val->inc_refcount();
+                cur_frame->push(val);
+            } else {
+                errorManager->compilation_error("undefined variable '" 
+                        + name.get_tok() + "'", 
+                        name.get_line(), 
+                        name.get_col());
+            }
         }
     }
 
@@ -1069,18 +1117,11 @@ namespace step {
         auto const &right = stms->get_right();
         
         right->accept_evaluator(this);
-
-        Token const name = left->get_ident();
-        if (cur_frame->is_defined_variable(name.get_tok())) {
-            auto index = cur_frame->get_variable(name.get_tok());
-            auto val = cur_frame->at(index);
-            dynamic_cast<Variable*>(val)->set_new_value(cur_frame->pop());
-            val->dec_refcount();
-        } else {
-            auto val = cur_frame->pop();
-            auto var = new Variable(val);
-            cur_frame->add_variable(name.get_tok(), var);
-        }
+        
+        evaluating_assignment = true;
+        left->accept_evaluator(this);
+        evaluating_assignment = false;
+        cur_frame->pop();
     }
 
     void Parser::evaluate(ArrayExpression *expr) {
@@ -1120,13 +1161,24 @@ namespace step {
             errorManager->runtime_error("invalid subscript operand", *cur_frame);
         }
 
-        if (dynamic_cast<Integer*>(index)->get_num() >= dynamic_cast<Array*>(top)->get_size()) {
+
+        auto arr = (top->get_type() == dt_identifier ? dynamic_cast<Variable*>(top)->get_value()
+                : top);
+        if (dynamic_cast<Integer*>(index)->get_num() >= dynamic_cast<Array*>(arr)->get_size()) {
             delete top;
             delete index;
             errorManager->runtime_error("array index out of bounds", *cur_frame);
         }
-        Argument *arg = new Argument({index});
-        cur_frame->push(dynamic_cast<Array*>(top)->call_object_specific_method("at", arg));
+
+        Argument *arg;
+        if (push_ref)
+            arg = new Argument({index, cur_frame->pop()});
+        else
+            arg = new Argument({index});
+        cur_frame->push(dynamic_cast<Array*>(arr)->call_object_specific_method((push_ref ? "set" : "at"), arg));
+
+        if (top->get_type() == dt_identifier)
+            arr->dec_refcount();
         delete arg;
         top->dec_refcount();
         if (top->get_refcount() == 0)
@@ -1136,8 +1188,11 @@ namespace step {
     void Parser::evaluate(ChainedExpression *expr) {
         auto exprs = expr->get_expressions();
         for (auto &i: exprs) {
+            if (i == exprs.back() && evaluating_assignment)
+                push_ref = true;
             i->accept_evaluator(this);
         }
+        push_ref = false;
     }
 
 } // step
