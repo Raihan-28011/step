@@ -8,18 +8,9 @@
 namespace step {
 
     Frame::Frame(Frame const &fm) {
-        for (auto const &i: fm.eval_stack) {
-            i->inc_refcount();
-            eval_stack.push_back(i);
-        }
-
         for (auto const &i: fm._defined_functions_) {
             i.second->inc_refcount();
             _defined_functions_.insert(i);
-        }
-
-        for (auto const &i: fm._defined_variables_) {
-            _defined_variables_.insert(i);
         }
     }
 

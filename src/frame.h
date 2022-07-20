@@ -53,8 +53,8 @@ namespace step {
         umap<string, bool> _builtin_functions_ {
                 {"print", true}
         };
-        umap<string, func_ref_t> _defined_functions_;
-        umap<string, size_t> _defined_variables_;
+        umap<string, func_ref_t> _defined_functions_{};
+        umap<string, size_t> _defined_variables_{};
     };
 
 } // step

@@ -748,8 +748,6 @@ namespace step {
 
         auto const &top = cur_frame->pop();
         top->inc_refcount();
-        call_stack.push(std::make_shared<Frame>(*cur_frame));
-        cur_frame = call_stack.top();
         auto const &params = expr->get_args();
 
         if (!top->is_function()) {
@@ -770,6 +768,20 @@ namespace step {
         for (auto const &i: params) {
             i->accept_evaluator(this);
         }
+        auto new_frame = std::make_shared<Frame>(*cur_frame);
+        stack<Frame::ref_t> objs;
+        for (auto const &i: params) {
+            objs.push(cur_frame->top());
+            cur_frame->pop();
+        }
+
+        for (auto const &i: params) {
+            new_frame->push(objs.top());
+            objs.pop();
+        }
+        
+        call_stack.push(new_frame);
+        cur_frame = call_stack.top();
         evaluate(logic);
         auto ret = cur_frame->top();
         call_stack.pop();
@@ -890,6 +902,8 @@ namespace step {
             stms->get_Expr()->accept_evaluator(this);
             returned_value = cur_frame->pop();
             returned_value->inc_refcount();
+        } else {
+            returned_value = new Integer("0");
         }
         return_statement_evaluated = true;
     }
@@ -1147,7 +1161,17 @@ namespace step {
         auto top = cur_frame->pop();
         top->inc_refcount();
         
-        exp->accept_evaluator(this);
+        if (push_ref) {
+            push_ref = false;
+            exp->accept_evaluator(this);
+            push_ref = true;
+        } else if (evaluating_assignment) {
+            evaluating_assignment = false;
+            exp->accept_evaluator(this);
+            evaluating_assignment = true;
+        } else {
+            exp->accept_evaluator(this);
+        }
         auto index = cur_frame->pop();
 
         if (index->get_type() != dt_int) {
@@ -1188,8 +1212,10 @@ namespace step {
     void Parser::evaluate(ChainedExpression *expr) {
         auto exprs = expr->get_expressions();
         for (auto &i: exprs) {
-            if (i == exprs.back() && evaluating_assignment)
+            if (i == exprs.back() && evaluating_assignment) {
                 push_ref = true;
+                evaluating_assignment = false;
+            }
             i->accept_evaluator(this);
         }
         push_ref = false;
