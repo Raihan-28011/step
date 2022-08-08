@@ -647,7 +647,14 @@ namespace step {
         for (auto &i: elements) {
             if (i->get_type() == dt_string)
                 os << '\'';
-            ret += i->print(os);
+            if (i == this) {
+                std::stringstream s;
+                s << "[{self (" << i << ")}]";
+                ret += s.str().length();
+                os << s.str();
+            } else {
+                ret += i->print(os);
+            }
             if (i->get_type() == dt_string)
                 os << '\'';
             if (&i != &elements.back()) {

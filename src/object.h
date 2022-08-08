@@ -45,7 +45,7 @@ namespace step {
 
         void inc_refcount() { ++refcount; }
         void dec_refcount() { (refcount > 0 ? --refcount : refcount); }
-        ref_count_t get_refcount() { return refcount; }
+        ref_count_t get_refcount() const { return refcount; }
         ObjectDataType get_type() const { return type; }
         virtual Object::size_t print(std::ostream &os) const = 0;
         virtual smart_ref_t call_object_specific_method(string name, args_ref_t args) = 0;
