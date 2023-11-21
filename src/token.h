@@ -73,7 +73,7 @@ namespace step {
         i32 get_line() const {  return line; }
         i32 get_col() const {  return col; }
 
-        static std::array<string, t_total> const tok_s;
+        static std::vector<string> const tok_s;
 
 #ifdef __DEBUG_STEP__
         void print() const {

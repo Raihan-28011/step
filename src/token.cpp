@@ -4,7 +4,7 @@
 
 #include "token.h"
 
-std::array<string, step::TokenKind::t_total> const step::Token::tok_s {
+std::vector<string> const step::Token::tok_s {
         "t_def",
         "t_print",
         "t_input",
