@@ -15,7 +15,7 @@ namespace Step {
         std::string _option;
         std::string _description;
         std::string _long_option; // Default: no long option
-        std::string _value_name; // Default: _long_option | _option
+        std::string _value_name;  // Default: _long_option | _option
         bool        _has_value;   // Default: false
     };
 
@@ -31,11 +31,10 @@ namespace Step {
                                  std::string long_option = "");
         bool parse();
         std::string const &get(std::string option);
-        void print() const;
+        void help() const;
     private:
         /* Private Methods */
         void convert_to_std_string(int argc, char *argv[]);
-        void help() const;
     private:
         std::vector<std::string> _argv;
         std::vector<ArgumentRule> _rules;

@@ -6,7 +6,6 @@
 #include "ArgumentParser.hpp"
 #include <algorithm>
 #include <cctype>
-#include <cstdlib>
 #include <iomanip>
 #include <ios>
 #include <iostream>
@@ -15,6 +14,7 @@
 
 Step::ArgumentParser::ArgumentParser(int argc, char *argv[]) {
     convert_to_std_string(argc, argv);
+    /* This is the only option that is added by default */
     add_rule("-h", "Show this information.", false, "", "--help");
 }
 
@@ -34,28 +34,31 @@ Step::ArgumentParser &Step::ArgumentParser::add_rule(std::string option,
                                                      std::string value_name,
                                                      std::string long_option) {
     if (option.empty() && long_option.empty()) {
-        std::cout << "Warning: trying to add rule without an option name is is not-allowed (rule-not-added)\n";
+        std::cerr << "Warning: trying to add rule without an option name is is not-allowed (rule-not-added)\n";
         return *this;
     }
 
     if (description.empty()) {
-        std::cout << "Warning: empty description is not-allowed (rule-not-added)\n";
+        std::cerr << "Warning: empty description is not-allowed (rule-not-added)\n";
         return *this;
     }
 
-    if (option.size() < 2 || (option.size() >= 2 && (option == "--" || option[0] != '-'))) {
-        // Warning: invalid option name. must be of form '-o' or '-op' or '-opt' or '-opt1' (rule-not-added)
-        std::cout << "Warning: invalid option name. must be of form '-o' or '-op' or '-opt' or '-opt1' (rule-not-added)\n";
+    if (long_option.empty() && 
+        (option.length() < 2 || 
+         (option.length() >= 2 && 
+          (option == "--" || 
+           option[0] != '-')))) {
+        std::cerr << "Warning: invalid option name. must be of form '-o' or '-op' or '-opt' or '-opt1' (rule-not-added)\n";
         return *this;
     }
 
-    if (long_option.size() < 3 || 
-       (long_option.size() >= 3 && 
-       (long_option == "---" || 
-        long_option[0] != '-' ||
-        long_option.substr(0, 2) != "--"))) {
-        // Warning: invalid long option name. must be of form '--o' or '--op' or '--opt1' (rule-not-added)
-        std::cout << "Warning: invalid long option name. must be of form '--o' or '--op' or '--opt1' (rule-not-added)\n";
+    if (option.empty() && 
+        (long_option.length() < 3 || 
+         (long_option.length() >= 3 && 
+          (long_option == "---" || 
+           long_option[0] != '-' ||
+           long_option.substr(0, 2) != "--")))) {
+        std::cerr << "Warning: invalid long option name. must be of form '--o' or '--op' or '--opt1' (rule-not-added)\n";
         return *this;
     }
 
@@ -66,9 +69,7 @@ Step::ArgumentParser &Step::ArgumentParser::add_rule(std::string option,
 
 bool Step::ArgumentParser::parse() {
     if (_argv.size() < 1) {
-        // Error: No input files provided
-        std::cout << "Error: No input files provided\n";
-        // TODO: Print usage/help -> Done
+        std::cerr << "Error: No input files provided\n";
         help();
         return false;
     }
@@ -80,29 +81,18 @@ bool Step::ArgumentParser::parse() {
             return a._option == arg || a._long_option == arg;
         });
 
-
         if (rule == _rules.end()) {
-            // Error: unrecognized command-line option '_argv.at(index)'
-            std::cout << "Error: unrecognized command-line option '" << _argv.at(index) << "'\n";
-            // TODO: Print usage/help -> Done
+            std::cerr << "Error: unrecognized command-line option '" << _argv.at(index) << "'\n";
             help();
             return false;
         }
 
         auto const &dref_rule = *rule;
-        if (dref_rule._option == "-h") {
-            help();
-            std::exit(0);
-            return true;
-        }
-
         std::string value;
         if (dref_rule._has_value) {
             ++index;
             if (index >= _argv.size()) {
-                // Error: missing value for argument '_argv.at(index-1)'
-                std::cout << "Error: missing value for argument '" << _argv.at(index-1) << "'\n";
-                // TODO: Print usage/help -> done
+                std::cerr << "Error: missing value after '" << _argv.at(index-1) << "'\n";
                 help();
                 return false;
             }
@@ -114,7 +104,7 @@ bool Step::ArgumentParser::parse() {
 
         if (!dref_rule._value_name.empty()) {
             arg = dref_rule._value_name;
-        } else if (!dref_rule._long_option.empty() && dref_rule._long_option == arg) {
+        } else if (!dref_rule._option.empty()) {
             arg = dref_rule._option;
         }
         _options[arg] = value;
@@ -123,18 +113,10 @@ bool Step::ArgumentParser::parse() {
     return true;
 }
 
-void Step::ArgumentParser::print() const {
-    std::cout << "{\n";
-    for (auto const &p: _options) {
-        std::cout << '\t' << p.first << ": " << p.second << '\n';
-    }
-    std::cout << "}\n";
-}
-
 void Step::ArgumentParser::help() const {
     std::ostringstream out;
     out << "Usage: step [options]\n"
-              << "Options:\n";
+        << "Options:\n";
     for (auto const &rule: _rules) {
         std::string value_name = "";
         if (!rule._value_name.empty()) {
@@ -150,7 +132,7 @@ void Step::ArgumentParser::help() const {
         std::ostringstream temp;
         temp << "   " << rule._option
              << (value_name.empty() ? "" : " <" + value_name + ">") 
-             << (rule._long_option.empty() ? "" : ", " + rule._long_option)
+             << (rule._long_option.empty() ? "" : (rule._option.empty() ? "" : ", ") + rule._long_option)
              << (value_name.empty() ? "" : " <" + value_name + ">");
 
         out << std::setw(24) << std::left << temp.str();
