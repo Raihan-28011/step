@@ -7,6 +7,7 @@
 #define __LEXEMEREADER_HPP__
 
 #include "IReader.hpp"
+#include "Lexeme.hpp"
 #include <memory>
 #include <vector>
 
@@ -25,14 +26,29 @@ namespace Step {
         /* Destructor */
         virtual ~LexemeReader() override;
 
+        /* Public Methods */
+        Lexeme const &peek(std::size_t offset = 0);
+        Lexeme const &next();
+
         /* Public overridden methods */
         virtual std::string read() override;
     private:
+        /* Private methods */
+        void skipws(std::string const &line, std::size_t &pos);
+        bool is_space(char c);
+        bool is_digit(char c);
+        bool is_ident(char c); // is identifier
+
+        void process();
+        void process_integer(std::string const &line, std::size_t &forward);
+        void process_float(std::string const &line, std::size_t &forward, std::size_t &lexeme_begin, std::size_t line_no);
+    private:
         std::unique_ptr<IReader> _reader;
-        std::vector<std::string> _lexemes;
+        std::vector<Lexeme> _lexemes;
         std::size_t _cur_lexeme;
     };
 }
 
 #endif // __LEXEMEREADER_HPP__
+
 

@@ -11,6 +11,7 @@
 Step::FileReader::FileReader(std::string fname)
     : _in(fname, std::ios::in)
 {
+    /* Determine the total file size */
     if (_in.is_open()) {
         _in.seekg(0, std::ios::end);
         _fsize = _in.tellg();

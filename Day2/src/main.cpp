@@ -4,16 +4,16 @@
  */
 
 #include "FileReader.hpp"
-#include "IReader.hpp"
+#include "Lexeme.hpp"
 #include "LexemeReader.hpp"
 #include "LineReader.hpp"
 #include "cmd/ArgumentParser.hpp"
-#include <iomanip>
 #include <iostream>
 #include <memory>
 
 int main(int argc, char *argv[]) {
     Step::ArgumentParser arg_parser{argc, argv};
+    // TODO: add rule validators in ArgumentParser
     arg_parser.add_rule("-in", 
                         "execute the <INPUT-FILE>. <INPUT-FILE> must be a step file.", 
                         true, 
@@ -26,17 +26,28 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
+        if (arg_parser.get("input-file").empty()) {
+            std::cerr << "Error: no input file provided\n";
+            arg_parser.help();
+            return -1;
+        }
+
+        // TODO: add input file extension check
+
         Step::LexemeReader reader(
-                std::make_unique<Step::LineReader>(
-                    std::make_unique<Step::FileReader>(
-                        arg_parser.get("input-file")
-                    )
+            std::make_unique<Step::LineReader>(
+                std::make_unique<Step::FileReader>(
+                    arg_parser.get("input-file")
                 )
+            )
         );
-        std::string lexeme(reader.read());
-        while (lexeme != Step::IReader::E_OI) {
-            std::cout << '<' << lexeme << "> ";
-            lexeme.assign(reader.read());
+        Step::Lexeme lexeme(reader.next());
+        while (lexeme._kind != Step::LexemeKind::E_OI) {
+            std::cout << "Lexeme(" << lexeme._lexeme 
+                      << ", " << lexeme._line 
+                      << ":" << lexeme._col 
+                      << ", " << Step::to_string(lexeme._kind) << ")\n";
+            lexeme = reader.next();
         }
     }
 }

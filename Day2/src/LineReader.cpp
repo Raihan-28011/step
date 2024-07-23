@@ -12,11 +12,12 @@
 Step::LineReader::LineReader(std::unique_ptr<IReader> &&reader)
     : _reader(std::move(reader)), _cur_line{0}
 {
+    /* Read 4KB or 1 disk block at a time (2 * read()) */
     std::string buffer1(_reader->read());
     std::string buffer2(_reader->read());
     while (buffer1 != IReader::E_OI) {
         std::size_t index = 0;
-        /* If the read operation ended at the middle of a line then complete the line in buffer1 */
+        /* If the read operation ended at the middle of a line for buffer1 then complete the line in buffer1 */
         if (buffer1.back() != '\n' && (buffer2 != IReader::E_OI && buffer2.front() != '\n')) {
             while (buffer2.at(index) != '\n' && index < buffer2.length()) {
                 buffer1.push_back(buffer2.at(index));
@@ -31,6 +32,7 @@ Step::LineReader::LineReader(std::unique_ptr<IReader> &&reader)
         while (in.good()) {
             std::getline(in, line);
             if (in.eof() && line.empty()) break;
+            if (line.empty()) continue; // Skip empty lines
             _lines.emplace_back(line + "\n");
         }
 

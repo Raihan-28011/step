@@ -11,4 +11,5 @@ add_executable(step src/main.cpp
                src/IReader.hpp src/IReader.cpp
                src/FileReader.cpp src/FileReader.hpp
                src/LineReader.cpp src/LineReader.hpp
-               src/LexemeReader.cpp src/LexemeReader.hpp)
+               src/LexemeReader.cpp src/LexemeReader.hpp
+               src/Lexeme.cpp src/Lexeme.hpp)

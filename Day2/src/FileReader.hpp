@@ -14,7 +14,7 @@ namespace Step {
     class FileReader: public IReader {
     public:
         /* Constants */
-        static constexpr std::size_t const BUFFER_SIZE = 1024; // 4KB or 1 disk block
+        static constexpr std::size_t const BUFFER_SIZE = 2048; // 2KB or half disk block
     public:
         /* Constructors */
         explicit FileReader(std::string fname);
