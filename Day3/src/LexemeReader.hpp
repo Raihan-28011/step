@@ -15,7 +15,8 @@ namespace Step {
     class LexemeReader: public IReader {
     public:
         /* Constructors */
-        explicit LexemeReader(std::unique_ptr<IReader> &&reader);
+        LexemeReader(std::unique_ptr<IReader> &&reader,
+                     std::string fname);
 
         /* Deleted constructors and special member functions */
         LexemeReader(LexemeReader const &freader) = delete;
@@ -38,13 +39,15 @@ namespace Step {
         bool is_space(char c);
         bool is_digit(char c);
         bool is_ident(char c); // is identifier
+        void skip_to_newline(std::string_view line, std::size_t &pos);
 
         void process();
-        void process_integer(std::string const &line, std::size_t &forward);
+        std::size_t process_integer(std::string const &line, std::size_t &forward, std::size_t line_no);
         void process_float(std::string const &line, std::size_t &forward, std::size_t &lexeme_begin, std::size_t line_no);
     private:
         std::unique_ptr<IReader> _reader;
         std::vector<Lexeme> _lexemes;
+        std::string _fname;
         std::size_t _cur_lexeme;
     };
 }

@@ -55,8 +55,15 @@ int main(int argc, char *argv[]) {
                 std::make_unique<Step::FileReader>(
                     arg_parser.get("input-file")
                 )
-            )
+            ),
+            arg_parser.get("input-file")
         );
+
+        if (Step::ErrorManager::error_occured) {
+            Step::ErrorManager::dump();
+            return -1;
+        }
+
         Step::Lexeme lexeme(reader.next());
         while (lexeme._kind != Step::LexemeKind::E_OI) {
             std::cout << "Lexeme(" << lexeme._lexeme 

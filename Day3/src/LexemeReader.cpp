@@ -5,14 +5,22 @@
 
 #include "LexemeReader.hpp"
 #include "ErrorManager.hpp"
+#include "ExpectationError.hpp"
 #include "IReader.hpp"
 #include "Lexeme.hpp"
+#include "MisplacedNumSeparator.hpp"
+#include "NumberTooLarge.hpp"
+#include "NumberTooSmall.hpp"
+#include "UnexpectedEoi.hpp"
 #include "UnrecognizedToken.hpp"
+#include <cmath>
+#include <limits>
 #include <memory>
 #include <string>
 
-Step::LexemeReader::LexemeReader(std::unique_ptr<IReader> &&reader)
-    : _reader(std::move(reader)), _cur_lexeme{0}
+Step::LexemeReader::LexemeReader(std::unique_ptr<IReader> &&reader,
+                                 std::string fname)
+    : _reader(std::move(reader)), _fname{fname}, _cur_lexeme{0}
 {
     process();
 }
@@ -46,28 +54,28 @@ void Step::LexemeReader::process() {
             char c = line.at(forward);
             switch (c) {
             case '\n':
-                _lexemes.emplace_back("\\n", line_no++, ++forward, LexemeKind::NEWLINE);
+                _lexemes.emplace_back(_fname, "\\n", line_no++, ++forward, LexemeKind::NEWLINE);
                 break;
             case '+':
-                _lexemes.emplace_back("+", line_no, ++forward, LexemeKind::PLUS);
+                _lexemes.emplace_back(_fname, "+", line_no, ++forward, LexemeKind::PLUS);
                 break;
             case '-':
-                _lexemes.emplace_back("-", line_no, ++forward, LexemeKind::HYPHEN);
+                _lexemes.emplace_back(_fname, "-", line_no, ++forward, LexemeKind::HYPHEN);
                 break;
             case '*':
-                _lexemes.emplace_back("*", line_no, ++forward, LexemeKind::STAR);
+                _lexemes.emplace_back(_fname, "*", line_no, ++forward, LexemeKind::STAR);
                 break;
             case '/':
-                _lexemes.emplace_back("/", line_no, ++forward, LexemeKind::SLASH);
+                _lexemes.emplace_back(_fname, "/", line_no, ++forward, LexemeKind::SLASH);
                 break;
             case '%':
-                _lexemes.emplace_back("%", line_no, ++forward, LexemeKind::MODULOUS);
+                _lexemes.emplace_back(_fname, "%", line_no, ++forward, LexemeKind::MODULOUS);
                 break;
             case '(':
-                _lexemes.emplace_back("(", line_no, ++forward, LexemeKind::LEFT_PAREN);
+                _lexemes.emplace_back(_fname, "(", line_no, ++forward, LexemeKind::LEFT_PAREN);
                 break;
             case ')':
-                _lexemes.emplace_back(")", line_no, ++forward, LexemeKind::RIGHT_PAREN);
+                _lexemes.emplace_back(_fname, ")", line_no, ++forward, LexemeKind::RIGHT_PAREN);
                 break;
             // case '"':
                 // process_string();
@@ -78,22 +86,21 @@ void Step::LexemeReader::process() {
                 // } else if (is_ident(c)) {
                     // process_identifier();
                 } else {
-
                     Step::ErrorManager::instance()
                         .add(std::make_unique<Step::UnrecognizedToken>(
-                            "",
+                            _fname,
                             line,
                             line_no,
                             forward
-                        ))
-                        .dump(true);
-                    _lexemes.emplace_back(std::string(1, c), line_no, ++forward, LexemeKind::MISCELLANEOUS);
+                        ));
+                    skip_to_newline(line, forward);
+                    // _lexemes.emplace_back(_fname, std::string(1, c), line_no, ++forward, LexemeKind::MISCELLANEOUS);
                 }
                 break;
             }
         }
     }
-    _lexemes.emplace_back("E_OI", line_no, 1, LexemeKind::E_OI);
+    _lexemes.emplace_back(_fname, "E_OI", line_no, 1, LexemeKind::E_OI);
 }
 
 void Step::LexemeReader::skipws(std::string const &line, std::size_t &pos) {
@@ -113,6 +120,13 @@ bool Step::LexemeReader::is_ident(char c) {
     return (c >= 65 && c <= 91) || (c >= 97 && c <= 123);
 }
 
+void Step::LexemeReader::skip_to_newline(std::string_view line, std::size_t &pos) {
+    while (pos < line.length() && line.at(pos) != '\n')
+        ++pos;
+    if (pos < line.length())
+        ++pos; // skip the newline also
+}
+
 void Step::LexemeReader::process_float(
         std::string const &line, 
         std::size_t &forward, 
@@ -120,19 +134,37 @@ void Step::LexemeReader::process_float(
         std::size_t line_no
 ) {
     /* ++forward because at(forward) we already know we have a digit, so skip it */
-    process_integer(line, ++forward);
+    std::size_t digit_count = process_integer(line, ++forward, line_no);
     if (forward < line.length() && line.at(forward) == '.') {
         ++forward;
         if (forward >= line.length()) {
             // Error: unexpected end-of-input. expected digit after radix point
+            Step::ErrorManager::instance()
+                .add(std::make_unique<Step::UnexpectedEoi>(
+                    _fname,
+                    line,
+                    "expected digit after radix point",
+                    line_no,
+                    forward
+                ));
+            return;
         }
 
         if (forward < line.length() && !is_digit(line.at(forward))) {
             // Error: a digit must follow a radix point
+            Step::ErrorManager::instance()
+                .add(std::make_unique<Step::ExpectationError>(
+                    _fname,
+                    line,
+                    "expected digit after radix point: radix point must be followed by a digit",
+                    line_no,
+                    forward
+                ));
+            return;
         }
 
         /* Extract the part after radix point */
-        process_integer(line, ++forward);
+        process_integer(line, ++forward, line_no);
 
         /* If there is any exponent part */
         if (forward < line.length() && 
@@ -141,6 +173,15 @@ void Step::LexemeReader::process_float(
 
             if (forward >= line.length()) {
                 // Error: unexpected end-of-input. exponent has no digits
+                Step::ErrorManager::instance()
+                    .add(std::make_unique<Step::UnexpectedEoi>(
+                        _fname,
+                        line,
+                        "exponent has no digit",
+                        line_no,
+                        forward
+                    ));
+                return;
             }
 
             if (forward < line.length() &&
@@ -150,12 +191,45 @@ void Step::LexemeReader::process_float(
 
             if (forward < line.length() && !is_digit(line.at(forward))) {
                 // Error: expected digit after exponent
+                Step::ErrorManager::instance()
+                    .add(std::make_unique<Step::ExpectationError>(
+                        _fname,
+                        line,
+                        "expected digit after exponent",
+                        line_no,
+                        forward
+                    ));
+                return;
             }
 
+            std::size_t exponent_start = forward;
+
             /* Process the exponent digits */
-            process_integer(line, ++forward);
+            std::size_t exponent_digits = process_integer(line, ++forward, line_no);
+            if (exponent_digits > std::size_t(std::log10(std::numeric_limits<double>::max_exponent10)+1)) {
+                Step::ErrorManager::instance()
+                    .add(std::make_unique<Step::NumberTooLarge>(
+                        _fname,
+                        line,
+                        line_no,
+                        exponent_start
+                    ));
+                return;    
+            }
+
+            if (exponent_digits > std::size_t(std::log10(std::numeric_limits<double>::min_exponent10)+1)) {
+                Step::ErrorManager::instance()
+                    .add(std::make_unique<Step::NumberTooSmall>(
+                        _fname,
+                        line,
+                        line_no,
+                        exponent_start
+                    ));
+                return;    
+            }
         }
         _lexemes.emplace_back(
+                _fname, 
                 std::string(line.begin() + lexeme_begin, 
                             line.begin() + forward), 
                 line_no, 
@@ -163,7 +237,19 @@ void Step::LexemeReader::process_float(
                 LexemeKind::FLOAT
         );
     } else {
+        if (digit_count > 18) {
+            Step::ErrorManager::instance()
+                .add(std::make_unique<Step::NumberTooLarge>(
+                    _fname,
+                    line,
+                    line_no,
+                    lexeme_begin
+                ));
+            return;
+        }
+
         _lexemes.emplace_back(
+                _fname, 
                 std::string(line.begin() + lexeme_begin, 
                             line.begin() + forward), 
                 line_no, 
@@ -174,12 +260,22 @@ void Step::LexemeReader::process_float(
 }
 
 
-void Step::LexemeReader::process_integer(std::string const &line, std::size_t &forward) {
-   char c;
-   while (forward < line.length() && (is_digit(c = line.at(forward)) || c == '_')) {
+std::size_t Step::LexemeReader::process_integer(std::string const &line, std::size_t &forward, std::size_t line_no) {
+    std::size_t digit_count = 0;
+    char c;
+    while (forward < line.length() && (is_digit(c = line.at(forward)) || c == '_')) {
+        digit_count += (c != '_');
         ++forward;
-   }
-   if (!is_digit(line.at(forward-1))) {
+    }
+    if (!is_digit(line.at(forward-1))) {
         // Error: number can not finish with or have a '_' before radix point
-   }
+        Step::ErrorManager::instance()
+            .add(std::make_unique<Step::MisplacedNumSeparator>(
+                _fname,
+                line,
+                line_no,
+                forward
+            ));
+    }
+    return digit_count;
 }

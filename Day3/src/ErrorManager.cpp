@@ -14,14 +14,20 @@
 std::vector<std::string> Step::ErrorManager::_errors;
 std::vector<std::string> Step::ErrorManager::_warnings;
 std::string Step::ErrorManager::_order = "";
+bool Step::ErrorManager::error_occured = false;
 
 Step::ErrorManager &Step::ErrorManager::add(std::unique_ptr<IError> &&error, bool is_warning) {
     if (is_warning) {
         _warnings.emplace_back(error->to_string());
         _order.append("w");
     } else {
+        error_occured = true;
         _errors.emplace_back(error->to_string());
         _order.append("e");
+        if (_errors.size() >= MAX_ERROR) {
+            _errors.emplace_back("Too many errors! Compilation terminated!\n");
+            this->dump(true);
+        }
     }
     return *this;
 }

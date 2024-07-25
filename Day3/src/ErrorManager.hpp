@@ -14,6 +14,9 @@
 namespace Step {
     class ErrorManager {
         public:
+            static constexpr std::size_t MAX_ERROR = 10;
+            static bool error_occured;
+        public:
             ErrorManager &add(std::unique_ptr<IError> &&error, bool is_warning = false);
             static ErrorManager &instance() {
                 static ErrorManager emanager;

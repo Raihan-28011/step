@@ -23,6 +23,7 @@ namespace Step {
     std::string to_string(LexemeKind kind);
 
     struct Lexeme {
+        std::string _fname;
         std::string _lexeme;
         std::size_t _line;
         std::size_t _col;

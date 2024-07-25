@@ -21,4 +21,9 @@ add_executable(step src/main.cpp
                src/NotValidFile.cpp src/NotValidFile.hpp
                src/GenericError.cpp src/GenericError.hpp
                src/UnrecognizedToken.cpp src/UnrecognizedToken.hpp
+               src/NumberTooLarge.cpp src/NumberTooLarge.hpp
+               src/NumberTooSmall.cpp src/NumberTooSmall.hpp
+               src/UnexpectedEoi.cpp src/UnexpectedEoi.hpp
+               src/MisplacedNumSeparator.cpp src/MisplacedNumSeparator.hpp
+               src/ExpectationError.cpp src/ExpectationError.hpp
 )
