@@ -1,8 +1,11 @@
-# Day 3
-Our goal today is going to build an Error Management System.
+# Day 3 & 4 & 5
+Our goal is going to build an Error Management System.
 
-# Approach
+# Initial Approach
 First thing we decided was to specialize each error type as a derived class of `Step::IError` interface (abstract class). Like, `Step::NoInpuFile`, `Step::NotValidFile`, `Step::UnrecognizedOption` etc. But, then we came across a similar pattern in some of this errors, so we decided to not to create class for each of them. We created a generic error class `Step::GenericError`, it just prints the pre-compilation errors. Then we have errors during lexing process. We plan to make them all concrete specialed classes of `Step::IError`. Though if found suitable and feasible, we can make some exceptions to that plan.
+
+# Improved Approach
+We just cleaned all the excess and unnecessary duplicate code by introducing new classes each time we add a new error. We made a `Step::PreCompilationError` class for all the pre-compilation errors (like, unrecognized command-line options, no input files, file could not be opened etc.). Then we made another class `Step::LexicalError` for all the lexical-analysis errors.
 
 # Issues
 We have some design issues that we need to fix. Below we are listing those that we have noticed, 

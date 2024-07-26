@@ -26,6 +26,7 @@ Step::ErrorManager &Step::ErrorManager::add(std::unique_ptr<IError> &&error, boo
         _order.append("e");
         if (_errors.size() >= MAX_ERROR) {
             _errors.emplace_back("Too many errors! Compilation terminated!\n");
+            _order.append("e");
             this->dump(true);
         }
     }

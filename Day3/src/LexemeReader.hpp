@@ -43,7 +43,11 @@ namespace Step {
 
         void process();
         std::size_t process_integer(std::string const &line, std::size_t &forward, std::size_t line_no);
-        void process_float(std::string const &line, std::size_t &forward, std::size_t &lexeme_begin, std::size_t line_no);
+        void process_float(bool positive,
+                           std::string const &line, 
+                           std::size_t &forward, 
+                           std::size_t &lexeme_begin, 
+                           std::size_t line_no);
     private:
         std::unique_ptr<IReader> _reader;
         std::vector<Lexeme> _lexemes;

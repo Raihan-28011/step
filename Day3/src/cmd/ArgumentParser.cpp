@@ -5,9 +5,7 @@
 
 #include "ArgumentParser.hpp"
 #include "../ErrorManager.hpp"
-#include "../NoInputFile.hpp"
-#include "../UnrecognizedOption.hpp"
-#include "../MissingArgumentValue.hpp"
+#include "../PreCompilationError.hpp"
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
@@ -75,9 +73,8 @@ Step::ArgumentParser &Step::ArgumentParser::add_rule(std::string option,
 bool Step::ArgumentParser::parse() {
     if (_argv.size() < 1) {
         Step::ErrorManager::instance()
-            .add(std::make_unique<Step::NoInputFile>())
-            .dump();
-        help();
+            .add(std::make_unique<Step::PreCompilationError>(IError::ErrorCode::E001))
+            .dump(true);
         return false;
     }
 
@@ -90,9 +87,8 @@ bool Step::ArgumentParser::parse() {
 
         if (rule == _rules.end()) {
             Step::ErrorManager::instance()
-                .add(std::make_unique<Step::UnrecognizedOption>(_argv.at(index)))
-                .dump();
-            help();
+                .add(std::make_unique<Step::PreCompilationError>(IError::ErrorCode::E002, _argv.at(index)))
+                .dump(true);
             return false;
         }
 
@@ -102,9 +98,8 @@ bool Step::ArgumentParser::parse() {
             ++index;
             if (index >= _argv.size()) {
                 Step::ErrorManager::instance()
-                    .add(std::make_unique<Step::MissingArgumentValue>(_argv.at(index-1)))
-                    .dump();
-                help();
+                    .add(std::make_unique<Step::PreCompilationError>(IError::ErrorCode::E003, _argv.at(index-1)))
+                    .dump(true);
                 return false;
             }
 

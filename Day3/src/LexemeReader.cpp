@@ -5,14 +5,10 @@
 
 #include "LexemeReader.hpp"
 #include "ErrorManager.hpp"
-#include "ExpectationError.hpp"
+#include "IError.hpp"
 #include "IReader.hpp"
 #include "Lexeme.hpp"
-#include "MisplacedNumSeparator.hpp"
-#include "NumberTooLarge.hpp"
-#include "NumberTooSmall.hpp"
-#include "UnexpectedEoi.hpp"
-#include "UnrecognizedToken.hpp"
+#include "LexicalError.hpp"
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -60,7 +56,11 @@ void Step::LexemeReader::process() {
                 _lexemes.emplace_back(_fname, "+", line_no, ++forward, LexemeKind::PLUS);
                 break;
             case '-':
-                _lexemes.emplace_back(_fname, "-", line_no, ++forward, LexemeKind::HYPHEN);
+                if (forward+1 < line.length() && is_digit(line.at(forward+1))) {
+                    process_float(false, line, forward, lexeme_begin, line_no);
+                } else {
+                    _lexemes.emplace_back(_fname, "-", line_no, ++forward, LexemeKind::HYPHEN);
+                }
                 break;
             case '*':
                 _lexemes.emplace_back(_fname, "*", line_no, ++forward, LexemeKind::STAR);
@@ -82,12 +82,13 @@ void Step::LexemeReader::process() {
                 // break;
             default:
                 if (is_digit(c)) {
-                    process_float(line, forward, lexeme_begin, line_no);
+                    process_float(true, line, forward, lexeme_begin, line_no);
                 // } else if (is_ident(c)) {
                     // process_identifier();
                 } else {
                     Step::ErrorManager::instance()
-                        .add(std::make_unique<Step::UnrecognizedToken>(
+                        .add(std::make_unique<Step::LexicalError>(
+                            IError::ErrorCode::E007,
                             _fname,
                             line,
                             line_no,
@@ -128,6 +129,7 @@ void Step::LexemeReader::skip_to_newline(std::string_view line, std::size_t &pos
 }
 
 void Step::LexemeReader::process_float(
+        bool positive,
         std::string const &line, 
         std::size_t &forward, 
         std::size_t &lexeme_begin, 
@@ -140,10 +142,11 @@ void Step::LexemeReader::process_float(
         if (forward >= line.length()) {
             // Error: unexpected end-of-input. expected digit after radix point
             Step::ErrorManager::instance()
-                .add(std::make_unique<Step::UnexpectedEoi>(
+                .add(std::make_unique<Step::LexicalError>(
+                    IError::ErrorCode::E008,
                     _fname,
                     line,
-                    "expected digit after radix point",
+                    // "expected digit after radix point",
                     line_no,
                     forward
                 ));
@@ -153,13 +156,15 @@ void Step::LexemeReader::process_float(
         if (forward < line.length() && !is_digit(line.at(forward))) {
             // Error: a digit must follow a radix point
             Step::ErrorManager::instance()
-                .add(std::make_unique<Step::ExpectationError>(
+                .add(std::make_unique<Step::LexicalError>(
+                    IError::ErrorCode::E009,
                     _fname,
                     line,
-                    "expected digit after radix point: radix point must be followed by a digit",
+                    // "expected digit after radix point: radix point must be followed by a digit",
                     line_no,
                     forward
                 ));
+            skip_to_newline(line, forward);
             return;
         }
 
@@ -174,10 +179,11 @@ void Step::LexemeReader::process_float(
             if (forward >= line.length()) {
                 // Error: unexpected end-of-input. exponent has no digits
                 Step::ErrorManager::instance()
-                    .add(std::make_unique<Step::UnexpectedEoi>(
+                    .add(std::make_unique<Step::LexicalError>(
+                        IError::ErrorCode::E010,
                         _fname,
                         line,
-                        "exponent has no digit",
+                        // "exponent has no digit",
                         line_no,
                         forward
                     ));
@@ -192,38 +198,43 @@ void Step::LexemeReader::process_float(
             if (forward < line.length() && !is_digit(line.at(forward))) {
                 // Error: expected digit after exponent
                 Step::ErrorManager::instance()
-                    .add(std::make_unique<Step::ExpectationError>(
+                    .add(std::make_unique<Step::LexicalError>(
+                        IError::ErrorCode::E011,
                         _fname,
                         line,
-                        "expected digit after exponent",
+                        // "expected digit after exponent",
                         line_no,
                         forward
                     ));
+                skip_to_newline(line, forward);
                 return;
             }
 
-            std::size_t exponent_start = forward;
+            // std::size_t exponent_start = forward;
 
             /* Process the exponent digits */
             std::size_t exponent_digits = process_integer(line, ++forward, line_no);
             if (exponent_digits > std::size_t(std::log10(std::numeric_limits<double>::max_exponent10)+1)) {
-                Step::ErrorManager::instance()
-                    .add(std::make_unique<Step::NumberTooLarge>(
-                        _fname,
-                        line,
-                        line_no,
-                        exponent_start
-                    ));
+                // TODO: Convert the exponent to a number and then generate exponent specific error
+                // Step::ErrorManager::instance()
+                //     .add(std::make_unique<Step::LexicalError>(
+                //         IError::ErrorCode::E012,
+                //         _fname,
+                //         line,
+                //         line_no,
+                //         lexeme_begin
+                //     ));
                 return;    
             }
 
             if (exponent_digits > std::size_t(std::log10(std::numeric_limits<double>::min_exponent10)+1)) {
                 Step::ErrorManager::instance()
-                    .add(std::make_unique<Step::NumberTooSmall>(
+                    .add(std::make_unique<Step::LexicalError>(
+                        IError::ErrorCode::E013,
                         _fname,
                         line,
                         line_no,
-                        exponent_start
+                        lexeme_begin
                     ));
                 return;    
             }
@@ -239,7 +250,8 @@ void Step::LexemeReader::process_float(
     } else {
         if (digit_count > 18) {
             Step::ErrorManager::instance()
-                .add(std::make_unique<Step::NumberTooLarge>(
+                .add(std::make_unique<Step::LexicalError>(
+                    positive ? IError::ErrorCode::E012 : IError::ErrorCode::E014,
                     _fname,
                     line,
                     line_no,
@@ -270,11 +282,12 @@ std::size_t Step::LexemeReader::process_integer(std::string const &line, std::si
     if (!is_digit(line.at(forward-1))) {
         // Error: number can not finish with or have a '_' before radix point
         Step::ErrorManager::instance()
-            .add(std::make_unique<Step::MisplacedNumSeparator>(
+            .add(std::make_unique<Step::LexicalError>(
+                IError::ErrorCode::E016,
                 _fname,
                 line,
                 line_no,
-                forward
+                forward-1
             ));
     }
     return digit_count;

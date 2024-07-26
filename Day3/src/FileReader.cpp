@@ -5,8 +5,9 @@
 
 #include "FileReader.hpp"
 #include "ErrorManager.hpp"
-#include "GenericError.hpp"
+#include "IError.hpp"
 #include "IReader.hpp"
+#include "PreCompilationError.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <filesystem>
@@ -17,10 +18,7 @@ Step::FileReader::FileReader(std::string fname)
     std::string absolute_path = std::filesystem::absolute(fname);
     if (!std::filesystem::exists(absolute_path)) {
         Step::ErrorManager::instance()
-            .add(std::make_unique<Step::GenericError>(
-                        fname + ": File not found. No such file or directory.\n"
-                        + "compilation terminated!\n"
-            ))
+            .add(std::make_unique<Step::PreCompilationError>(IError::ErrorCode::E005, fname))
             .dump(true, ENOENT); 
     }
 
@@ -32,10 +30,7 @@ Step::FileReader::FileReader(std::string fname)
         _in.seekg(0, std::ios::beg);
     } else { 
         Step::ErrorManager::instance()
-            .add(std::make_unique<Step::GenericError>(
-                        fname + ": File could not be opened. (Probable cause: No read permission)\n"
-                        + "compilation terminated!\n"
-            ))
+            .add(std::make_unique<Step::PreCompilationError>(IError::ErrorCode::E006, fname))
             .dump(true, EACCES);
     }
     std::filesystem::path path;

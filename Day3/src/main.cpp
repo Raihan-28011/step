@@ -5,11 +5,11 @@
 
 #include "ErrorManager.hpp"
 #include "FileReader.hpp"
+#include "IError.hpp"
 #include "Lexeme.hpp"
 #include "LexemeReader.hpp"
 #include "LineReader.hpp"
-#include "NoInputFile.hpp"
-#include "NotValidFile.hpp"
+#include "PreCompilationError.hpp"
 #include "cmd/ArgumentParser.hpp"
 #include <iostream>
 #include <memory>
@@ -31,9 +31,8 @@ int main(int argc, char *argv[]) {
 
         if (arg_parser.get("input-file").empty()) {
             Step::ErrorManager::instance()
-                .add(std::make_unique<Step::NoInputFile>())
-                .dump();
-            arg_parser.help();
+                .add(std::make_unique<Step::PreCompilationError>(Step::IError::ErrorCode::E001))
+                .dump(true);
             return -1;
         }
 
@@ -44,8 +43,8 @@ int main(int argc, char *argv[]) {
             if (index == std::string::npos || 
                 fname.substr(index+1) != "step") {
                 Step::ErrorManager::instance()
-                    .add(std::make_unique<Step::NotValidFile>(fname))
-                    .dump();
+                    .add(std::make_unique<Step::PreCompilationError>(Step::IError::ErrorCode::E004, fname))
+                    .dump(true);
                 return -1;
             }
         }

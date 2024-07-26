@@ -15,11 +15,8 @@ add_executable(step src/main.cpp
                src/Lexeme.cpp src/Lexeme.hpp
                src/IError.cpp src/IError.hpp
                src/ErrorManager.cpp src/ErrorManager.hpp
-               src/NoInputFile.cpp src/NoInputFile.hpp
-               src/UnrecognizedOption.cpp src/UnrecognizedOption.hpp
-               src/MissingArgumentValue.cpp src/MissingArgumentValue.hpp
-               src/NotValidFile.cpp src/NotValidFile.hpp
-               src/GenericError.cpp src/GenericError.hpp
+               src/PreCompilationError.cpp src/PreCompilationError.hpp
+               src/LexicalError.cpp src/LexicalError.hpp
                src/UnrecognizedToken.cpp src/UnrecognizedToken.hpp
                src/NumberTooLarge.cpp src/NumberTooLarge.hpp
                src/NumberTooSmall.cpp src/NumberTooSmall.hpp

@@ -9,4 +9,4 @@ will be produced.
 # Development Process
 - [Day 1: 22.07.2024](Day1/README.md): Writing an commadn line argument parser.
 - [Day 2: 24.07.2024](Day2/README.md): Writing a lexer to lex the given grammar in the Day2 readme.
-- [Day 3: 25.07.2024](Day3/README.md): Writin a error managing system.
+- [Day 3 & 4: 25.07.2024](Day3/README.md): Writin a error managing system.
