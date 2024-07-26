@@ -35,24 +35,31 @@ namespace Step {
         virtual std::string read() override;
     private:
         /* Private methods */
-        void skipws(std::string const &line, std::size_t &pos);
+        Lexeme make_lexeme(LexemeKind  kind,
+                           std::string lexeme,
+                           std::size_t col);
+
+        void skipws();
         bool is_space(char c);
         bool is_digit(char c);
         bool is_ident(char c); // is identifier
-        void skip_to_newline(std::string_view line, std::size_t &pos);
+        void skip_to_newline();
+        char nextc();
+        char peekc();
 
         void process();
-        std::size_t process_integer(std::string const &line, std::size_t &forward, std::size_t line_no);
-        void process_float(bool positive,
-                           std::string const &line, 
-                           std::size_t &forward, 
-                           std::size_t &lexeme_begin, 
-                           std::size_t line_no);
+        std::size_t process_integer();
+        void process_float(bool positive);
     private:
         std::unique_ptr<IReader> _reader;
         std::vector<Lexeme> _lexemes;
         std::string _fname;
         std::size_t _cur_lexeme;
+
+        std::string line;
+        std::size_t line_no;
+        std::size_t lexeme_begin;
+        std::size_t forward;
     };
 }
 
