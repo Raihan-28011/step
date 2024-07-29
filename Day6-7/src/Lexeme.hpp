@@ -11,6 +11,7 @@
 
 namespace Step {
     enum class LexemeKind {
+        MISCELLANEOUS = -1, E_OI,
         INTEGER, FLOAT,
         // STRING, IDENTIFIER,
         PLUS, HYPHEN,
@@ -18,7 +19,6 @@ namespace Step {
         MODULOUS,
         LEFT_PAREN, RIGHT_PAREN,
         NEWLINE,
-        MISCELLANEOUS, E_OI,
     };
 
     std::string to_string(LexemeKind kind);

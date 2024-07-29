@@ -60,6 +60,8 @@ namespace Step {
         std::size_t line_no;
         std::size_t lexeme_begin;
         std::size_t forward;
+
+        Step::Lexeme LEXEME_E_IO;
     };
 }
 

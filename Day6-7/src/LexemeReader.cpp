@@ -17,16 +17,20 @@
 
 Step::LexemeReader::LexemeReader(std::unique_ptr<IReader> &&reader,
                                  std::string fname)
-    : _reader(std::move(reader)), _fname{fname}, _cur_lexeme{0}
+    : _reader(std::move(reader)), 
+      _fname{fname}, 
+      _cur_lexeme{0},
+      LEXEME_E_IO{_fname, IReader::E_OI, 0, 1, Step::LexemeKind::E_OI}
 {
     process();
+    LEXEME_E_IO._line = line_no;
 }
 
 Step::LexemeReader::~LexemeReader() = default;
 
 Step::Lexeme const &Step::LexemeReader::peek(std::size_t offset) {
-    if (_cur_lexeme + offset >= _lexemes.size()) {
-        return _lexemes.back();
+    if (_cur_lexeme + offset >= _lexemes.size() || _cur_lexeme + offset < 0) {
+        return Step::LexemeReader::LEXEME_E_IO;
     }
     return _lexemes.at(_cur_lexeme + offset);
 }

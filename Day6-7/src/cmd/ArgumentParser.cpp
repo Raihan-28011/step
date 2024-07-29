@@ -133,13 +133,12 @@ void Step::ArgumentParser::help() const {
             value_name = rule._option;
         }
 
-        std::transform(value_name.begin(), value_name.end(), value_name.begin(), [](char c) { return std::toupper(c); });
-        
+        for (auto &c: value_name) c = std::toupper(c); 
         std::ostringstream temp;
         temp << "   " << rule._option
-             << (value_name.empty() ? "" : " <" + value_name + ">") 
+             << (value_name.empty() ? "" : " " + value_name) 
              << (rule._long_option.empty() ? "" : (rule._option.empty() ? "" : ", ") + rule._long_option)
-             << (value_name.empty() ? "" : " <" + value_name + ">");
+             << (value_name.empty() ? "" : " " + value_name);
 
         out << std::setw(24) << std::left << temp.str();
         out << (temp.str().length() >= 24 ? "\n" : "");

@@ -17,4 +17,9 @@ add_executable(step src/main.cpp
                src/ErrorManager.cpp src/ErrorManager.hpp
                src/PreCompilationError.cpp src/PreCompilationError.hpp
                src/LexicalError.cpp src/LexicalError.hpp
+               src/IAst.hpp
+               src/Parser.cpp src/Parser.hpp
+               src/BinaryOpNode.cpp src/BinaryOpNode.hpp
+               src/LiteralNode.cpp src/LiteralNode.hpp
+               src/GroupNode.cpp src/GroupNode.hpp
 )

@@ -1,15 +1,15 @@
-expr ::= term '+' expr
-       | term '-' expr
-       | term
+expression ::= term '+' expression
+             | term '-' expression
+             | term
 
 term ::= factor '*' term
        | factor '/' term
        | factor
 
-factor ::= number
-         | '(' expr ')'
+factor ::= literal
+         | '(' expression ')'
 
-number ::= inetger
+literal ::= inetger
          | float
 
 integer ::= [0-9]([0-9]*_*[0-9])*

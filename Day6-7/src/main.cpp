@@ -9,16 +9,18 @@
 #include "Lexeme.hpp"
 #include "LexemeReader.hpp"
 #include "LineReader.hpp"
+#include "Parser.hpp"
 #include "PreCompilationError.hpp"
 #include "cmd/ArgumentParser.hpp"
 #include <iostream>
 #include <memory>
+#include <utility>
 
 int main(int argc, char *argv[]) {
     Step::ArgumentParser arg_parser{argc, argv};
     // TODO: add rule validators in ArgumentParser
     arg_parser.add_rule("-in", 
-                        "execute the <INPUT-FILE>. <INPUT-FILE> must be a step file.", 
+                        "execute the INPUT-FILE. Note: INPUT-FILE must be a step file.", 
                         true, 
                         "input-file", 
                         "--input-file");
@@ -49,13 +51,15 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        Step::LexemeReader reader(
-            std::make_unique<Step::LineReader>(
-                std::make_unique<Step::FileReader>(
-                    arg_parser.get("input-file")
-                )
-            ),
-            arg_parser.get("input-file")
+        auto lexer(
+            std::make_unique<Step::LexemeReader>(
+                std::make_unique<Step::LineReader>(
+                    std::make_unique<Step::FileReader>(
+                        arg_parser.get("input-file")
+                    )
+                ),
+                arg_parser.get("input-file")
+            )
         );
 
         if (Step::ErrorManager::error_occured) {
@@ -63,13 +67,8 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
-        Step::Lexeme lexeme(reader.next());
-        while (lexeme._kind != Step::LexemeKind::E_OI) {
-            std::cout << "Lexeme(" << Step::to_string(lexeme)
-                      << ", " << lexeme._line 
-                      << ":" << lexeme._col 
-                      << ", " << Step::to_string(lexeme._kind) << ")\n";
-            lexeme = reader.next();
-        }
+        Step::Parser parser;
+        auto expr = parser.parse(std::move(lexer));
+        std::cout << expr->to_string(0);
     }
 }
