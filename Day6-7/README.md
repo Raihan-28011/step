@@ -2,7 +2,7 @@
 Our goal is to fix some bugs and issues. And finally to start working on the parser.
 
 # Approach for Parser
-We planned to write a recursive descent parser (LR(1)), which is very fairly easy to write. We also changed the grammar to make it more standard. Here is the changed grammar.
+We planned to write a recursive descent parser (LL(1)), which is very fairly easy to write. We also changed the grammar to make it more standard. Here is the changed grammar.
 ```
 expression ::= term '+' expression
              | term '-' expression
