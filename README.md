@@ -12,3 +12,4 @@ will be produced.
 - [Day 3, 4 & 5: 25.07.2024](Day3-4-5/README.md): Writing a error managing system.
 - [Day 6 & 7: 28.07.2024](Day6/README.md): Fixing some bugs and writing a small parser.
 - [Day 8: 30.07.2024](Day7/README.md): Fix the grammar appropriately for the LL(1) parser.
+- [Day 9 & 10: 31.07.2024 & 05.08.2024](Day8/README.md): Write a simple bytecode virtual machine and integrate with the parser.
