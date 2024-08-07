@@ -1,5 +1,19 @@
-expression ::= expression '+' term
-             | expression '-' term
+module ::= statements
+
+statements ::= expression_statement+ E_IO
+
+expression_statement ::= expression NEWLINE
+
+expression ::= expression < relational
+             | expression > relational
+             | expression <= relational
+             | expression >= relational
+             | expression == relational
+             | expression != relational
+             | relational
+
+relational ::= relational '+' term
+             | relational '-' term
              | term
 
 term ::= term '*' factor
