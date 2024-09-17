@@ -1,0 +1,20 @@
+def func() {
+    return "success";
+}
+
+var = [10, [10, [func]]];
+print(var[1][1][0](), "\n");
+
+def index() {
+    return 1;
+}
+
+i = 1;
+var[i][i][i-1] = [func, index, [3029, 4343]];
+print(var, "\n");
+
+var[index()][index()][index()-1] = "raihan kabir";
+print(var, "\n");
+
+var[1] = var;
+print(var, "\n");
