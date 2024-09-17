@@ -1,0 +1,24 @@
+/*
+ * created by: shunnobir
+ * date: 13/09/2024
+ */
+
+#ifndef _STEP_CONFIG_H_
+#define _STEP_CONFIG_H_
+
+#ifndef STEP_MAJOR_VERSION
+#define STEP_MAJOR_VERSION 0
+#endif
+
+#ifndef STEP_MINOR_VERSION
+#define STEP_MINOR_VERSION 1
+#endif
+
+#define STRINGIFY_STEP_AUX(X) #X
+#define STRINGIFY(X) STRINGIFY_STEP_AUX(X)
+
+#ifndef STEP_VERSION
+#define STEP_VERSION STRINGIFY(STEP_MAJOR_VERSION) "." STRINGIFY(STEP_MINOR_VERSION)
+#endif
+
+#endif // _STEP_CONFIG_H_
