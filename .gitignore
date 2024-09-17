@@ -3,6 +3,8 @@
 .vscode
 cmake-build-debug
 cmake-build-release
+cmake-debug-build
+cmake-release-build
 *.gram
 compile_commands.json
 src/*.vim
