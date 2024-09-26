@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -24,5 +25,6 @@ typedef double f64;
 typedef long double f128;
 
 typedef i32 Step_Boolean;
+typedef FILE Step_File;
 
 #endif // _STEP_TYPEDEFS_H_

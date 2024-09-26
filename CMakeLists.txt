@@ -8,5 +8,4 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-gdwarf-3)
 add_executable(step src/config.h 
                     src/typedefs.h
-                    src/cmdopts.h src/cmdopts.c
-                    src/step.c)
+                    src/main.c)
